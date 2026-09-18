@@ -1,0 +1,54 @@
+{
+  "name": "@sincpro/criteria",
+  "version": "0.1.0",
+  "description": "The read grammar of the Sincpro engine in TypeScript: criteria, model definition, the in-memory engine that answers one, and readings that hold the cursor for you. No transport, no framework, no dependencies.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./criteria.schema.json": "./criteria.schema.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "criteria.schema.json",
+    "AGENTS.md",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "prettier": {
+    "printWidth": 94
+  },
+  "keywords": [
+    "criteria",
+    "specification",
+    "cursor",
+    "pagination",
+    "ddd",
+    "sincpro"
+  ],
+  "repository": "https://github.com/Sincpro-SRL/sincpro_criteria",
+  "author": "Gutierrez, Andres <andres.gutierrez@sincpro.com.bo>",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.15.0",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "prettier": "^3.9.8",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.23.13",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.70.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

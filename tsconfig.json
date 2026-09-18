@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext"],
+    "types": ["node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "baseUrl": ".",
+    "paths": {
+      "@sincpro/criteria": ["./sincpro_criteria/index.ts"],
+      "@sincpro/criteria/*": ["./sincpro_criteria/*"]
+    }
+  },
+  "include": ["sincpro_criteria/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
