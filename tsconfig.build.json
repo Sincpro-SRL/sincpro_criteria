@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./sincpro_criteria",
+    "sourceMap": false,
+    "declarationMap": false
+  },
+  "include": ["sincpro_criteria/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts"],
+  "tsc-alias": {
+    "resolveFullPaths": true
+  }
+}

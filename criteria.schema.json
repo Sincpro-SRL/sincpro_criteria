@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sincpro.com.bo/schemas/criteria.schema.json",
+  "title": "Criteria",
+  "description": "What a caller sends to the Sincpro engine: the filter, the ordering, the page, what to bring back and how to group it. Every part is optional.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "where": {
+      "$ref": "#/$defs/expression",
+      "description": "The filter: a condition, or an all/any/negate group of more."
+    },
+    "order": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/sort" },
+      "description": "How the rows come back. The identity is appended as a tiebreaker so a keyset page is a total order."
+    },
+    "pagination": { "$ref": "#/$defs/pagination" },
+    "specification": {
+      "$ref": "#/$defs/specification",
+      "description": "What to bring back of each record. Absent means every scalar and no relation; present and empty means the identity alone."
+    },
+    "grouping": { "$ref": "#/$defs/grouping" },
+    "count": {
+      "enum": ["none", "capped", "exact"],
+      "default": "capped",
+      "description": "How much counting costs. 'capped' stops at a ceiling and says so."
+    },
+    "meta": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the answer carries the model definition."
+    }
+  },
+  "$defs": {
+    "operator": {
+      "enum": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "like",
+        ">",
+        ">=",
+        "<",
+        "<=",
+        "is null",
+        "contains",
+        "not contains",
+        "between"
+      ],
+      "description": "How a question is asked. The same symbols the model definition publishes in FieldMeta.ops."
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "value"],
+      "properties": {
+        "field": { "type": "string" },
+        "operator": { "$ref": "#/$defs/operator", "default": "=" },
+        "value": {
+          "description": "What the field is compared against. A multi-valued operator takes a list; 'between' takes exactly two bounds; the value of 'is null' is the question itself, a boolean."
+        }
+      }
+    },
+    "expression": {
+      "description": "A condition, or a group of them. Each shape is recognised by the key it carries.",
+      "oneOf": [
+        { "$ref": "#/$defs/condition" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["all"],
+          "properties": {
+            "all": { "type": "array", "items": { "$ref": "#/$defs/expression" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["any"],
+          "properties": {
+            "any": { "type": "array", "items": { "$ref": "#/$defs/expression" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["negate"],
+          "properties": { "negate": { "$ref": "#/$defs/expression" } }
+        }
+      ]
+    },
+    "sort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field"],
+      "properties": {
+        "field": { "type": "string" },
+        "descending": { "type": "boolean", "default": false }
+      }
+    },
+    "pagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How many, and from where. How many belongs to the page; from where is a strategy.",
+      "properties": {
+        "limit": { "type": "integer", "minimum": 0 },
+        "strategy": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["token"],
+              "properties": {
+                "token": {
+                  "type": ["string", "null"],
+                  "description": "The cursor that came back with the previous page; null is the first one. It names a row, not a position, so a row inserted mid-walk moves nothing."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rows"],
+              "properties": {
+                "rows": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "How many rows to skip. What everybody else does; its cost grows with the offset."
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "specification": {
+      "type": "object",
+      "description": "Field name to the criteria that says how to bring it. The value is a criteria exactly like the outer one, at any depth.",
+      "additionalProperties": { "$ref": "#" }
+    },
+    "level": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field"],
+      "properties": {
+        "field": { "type": "string" },
+        "grain": {
+          "enum": ["year", "month", "week", "day", null],
+          "description": "How coarsely to cut a date before grouping by it."
+        }
+      }
+    },
+    "fold": {
+      "type": "array",
+      "description": "One number folded out of a bucket's rows, written [function, field].",
+      "prefixItems": [
+        { "enum": ["sum", "avg", "min", "max", "count"] },
+        { "type": "string" }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "grouping": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How a result set is split when it is counted rather than listed. One statement per level.",
+      "properties": {
+        "by": { "type": "array", "items": { "$ref": "#/$defs/level" } },
+        "totals": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/fold" }
+        },
+        "having": {
+          "$ref": "#/$defs/expression",
+          "description": "A filter over what the groups folded, reading the names in totals plus 'count'."
+        },
+        "order": { "type": "array", "items": { "$ref": "#/$defs/sort" } },
+        "pagination": { "$ref": "#/$defs/pagination" }
+      }
+    }
+  },
+  "examples": [
+    {
+      "where": {
+        "all": [
+          { "field": "row_count", "operator": ">", "value": 1000 },
+          {
+            "any": [{ "field": "encoding", "operator": "in", "value": ["utf-8", "latin-1"] }]
+          }
+        ]
+      },
+      "order": [{ "field": "registered_at", "descending": true }],
+      "pagination": { "limit": 100 },
+      "specification": { "name": {}, "runs": { "pagination": { "limit": 20 } } },
+      "grouping": {
+        "by": [{ "field": "encoding" }, { "field": "registered_at", "grain": "month" }],
+        "totals": { "rows": ["sum", "row_count"] }
+      },
+      "count": "capped",
+      "meta": true
+    }
+  ]
+}
