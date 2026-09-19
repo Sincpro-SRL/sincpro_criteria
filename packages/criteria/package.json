@@ -1,0 +1,59 @@
+{
+  "name": "@sincpro/criteria",
+  "version": "0.1.0",
+  "description": "The read grammar of the Sincpro engine in TypeScript: criteria, model definition, the in-memory engine that answers one, and readings that hold the cursor for you. No transport, no framework, no dependencies.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./engine": {
+      "types": "./dist/engine/index.d.ts",
+      "default": "./dist/engine/index.js"
+    },
+    "./analysis": {
+      "types": "./dist/analysis/index.d.ts",
+      "default": "./dist/analysis/index.js"
+    },
+    "./rest": {
+      "types": "./dist/rest/index.d.ts",
+      "default": "./dist/rest/index.js"
+    },
+    "./rpc": {
+      "types": "./dist/rpc/index.d.ts",
+      "default": "./dist/rpc/index.js"
+    },
+    "./criteria.schema.json": "./criteria.schema.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "criteria.schema.json",
+    "AGENTS.md",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "criteria",
+    "specification",
+    "cursor",
+    "pagination",
+    "ddd",
+    "sincpro"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sincpro-SRL/sincpro_criteria.git",
+    "directory": "packages/criteria"
+  },
+  "author": "Gutierrez, Andres <andres.gutierrez@sincpro.com.bo>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  }
+}

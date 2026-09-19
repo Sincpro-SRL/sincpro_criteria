@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext", "dom"],
+    "types": ["node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "baseUrl": ".",
+    "paths": {
+      "@sincpro/criteria-react": ["./src/index.ts"],
+      "@sincpro/criteria-react/*": ["./src/*"],
+      // Points at the sibling package's SOURCE, not its build, so typechecking this package
+      // never needs `make build` to have run in packages/criteria first — Node's own module
+      // resolution at runtime still goes through the real dependency (dist/, via the
+      // node_modules symlink yarn workspaces made), this only affects `tsc`.
+      "@sincpro/criteria": ["../criteria/sincpro_criteria/index.ts"],
+      "@sincpro/criteria/*": ["../criteria/sincpro_criteria/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

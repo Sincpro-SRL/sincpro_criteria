@@ -1,6 +1,8 @@
 .DEFAULT_GOAL := help
 
-PACKAGE := @sincpro/criteria
+# Every package in the workspace with its own Makefile, in dependency order — criteria-react
+# depends on criteria, so it typechecks/builds/tests after it.
+PACKAGES := packages/criteria packages/criteria-react
 
 prepare-environment:
 	@pipx install pre-commit
@@ -8,31 +10,36 @@ prepare-environment:
 	@pre-commit install
 
 init: prepare-environment
-	@echo "Installing Node.js dependencies..."
+	@echo "Installing Node.js dependencies for the whole workspace..."
 	@yarn install
 
 typecheck:
-	@npx tsc --noEmit
+	@for p in $(PACKAGES); do $(MAKE) -C $$p typecheck || exit 1; done
 
-format:
-	@echo "🔤 Sorting imports + auto-fix (eslint)..."
-	@npx eslint . --fix
-	@echo "🎨 Formatting (prettier)..."
-	@npx prettier --write "**/*.{ts,json,yml,yaml,md}" --ignore-path .prettierignore --ignore-unknown
-	@echo "Checking types after formatting..."
-	@make typecheck
+format: format-root
+	@npx prettier --experimental-cli --write "*.{md,json}" "docs/**/*.md" ".github/**/*.{yaml,yml}" --ignore-path .prettierignore --ignore-unknown
+	@for p in $(PACKAGES); do $(MAKE) -C $$p format || exit 1; done
 
 lint:
-	@npx eslint .
+	@for p in $(PACKAGES); do $(MAKE) -C $$p lint || exit 1; done
 
 doctor:
-	@bash scripts/doctor.sh
+	@for p in $(PACKAGES); do $(MAKE) -C $$p doctor || exit 1; done
 
 test:
-	@echo "🧪 Running tests..."
-	@node --import tsx --test "tests/**/*.test.ts"
+	@for p in $(PACKAGES); do $(MAKE) -C $$p test || exit 1; done
 
-verify-format: format lint doctor
+sync-parity:
+	@$(MAKE) -C packages/criteria sync-parity
+
+check-parity:
+	@$(MAKE) -C packages/criteria check-parity
+
+# Every package's own `verify-format` runs its format/lint/doctor/check-parity; the one thing
+# worth doing only once, from here, is asking git whether any of that left the tree dirty —
+# doing it per package would just repeat the same repo-wide answer once per package.
+verify-format: format-root
+	@for p in $(PACKAGES); do $(MAKE) -C $$p verify-format || exit 1; done
 	@if ! git diff --quiet; then \
 	  echo >&2 "✘ Formatting changed files. Please add them to the commit."; \
 	  git --no-pager diff --name-only HEAD -- >&2; \
@@ -41,40 +48,29 @@ verify-format: format lint doctor
 	@echo "✓ Format verification passed"
 
 build:
-	@echo "🏗️  Building $(PACKAGE) -> dist (tsc)..."
-	@rm -rf dist
-	@npx tsc -p tsconfig.build.json
-	@npx tsc-alias -p tsconfig.build.json
-	@echo "✓ Build ready in ./dist (JS + .d.ts, @sincpro/criteria resolved to relative)"
+	@for p in $(PACKAGES); do $(MAKE) -C $$p build || exit 1; done
 
+# Lockstep, not independent, versioning — not a preference, a constraint: the shared
+# `Sincpro-SRL/.github` release pipeline computes ONE version from the GitHub release tag and
+# calls `make update-version VERSION=x` ONCE, at the repo root. It has no notion of separate
+# packages, so every package in $(PACKAGES) is bumped to the same VERSION on every release,
+# whether or not that package's own code changed. See docs/DESIGN.md's "Repo layout" for the
+# independent-versioning intent this overrides, and why.
 update-version:
 ifndef VERSION
 	$(error VERSION is required. Usage: make update-version VERSION=1.2.3)
 endif
-	@CURRENT_VERSION=$$(node -p "require('./package.json').version"); \
-	if [ "$$CURRENT_VERSION" = "$(VERSION)" ]; then \
-		echo "✓ Version is already $(VERSION), skipping update"; \
-	else \
-		npm version $(VERSION) --no-git-tag-version && echo "✓ Version updated to $(VERSION)"; \
-	fi
+	@for p in $(PACKAGES); do $(MAKE) -C $$p update-version VERSION=$(VERSION) || exit 1; done
 
-publish: build
-	@echo "📦 Publishing $(PACKAGE) to NPM..."
-	@if [ -n "$$NPM_TOKEN" ]; then \
-		echo "//registry.npmjs.org/:_authToken=$$NPM_TOKEN" > .npmrc.tmp; \
-		chmod 600 .npmrc.tmp; \
-		npm publish --access public --userconfig .npmrc.tmp; \
-		rm -f .npmrc.tmp; \
-	else \
-		npm publish --access public; \
-	fi
-	@echo "✓ Published successfully"
+publish:
+	@for p in $(PACKAGES); do $(MAKE) -C $$p publish || exit 1; done
 
 deploy:
-	@echo "Deploy not applicable for library modules"
+	@echo "Deploy not applicable for library packages"
 
 clean:
-	@rm -rf dist node_modules
-	@echo "✓ Cleaned"
+	@for p in $(PACKAGES); do $(MAKE) -C $$p clean || exit 1; done
+	@rm -rf node_modules
 
-.PHONY: prepare-environment init typecheck format lint doctor test verify-format build update-version publish deploy clean
+.PHONY: prepare-environment init typecheck format-root format lint doctor test sync-parity \
+	check-parity verify-format build update-version publish deploy clean

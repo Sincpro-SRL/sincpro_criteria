@@ -1,0 +1,49 @@
+{
+  "name": "@sincpro/criteria-react",
+  "version": "0.1.0",
+  "description": "React hooks over @sincpro/criteria's Reading and Buckets, plus a query-key helper for wiring a resource into an existing cache (react-query, …). See docs/DESIGN.md at the repo root for why this is a separate package.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "peerDependencies": {
+    "@sincpro/criteria": "^0.1.0",
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@sincpro/criteria": "*",
+    "@types/react": "^18.3.0",
+    "@types/react-test-renderer": "^18.3.0",
+    "react": "^18.3.0",
+    "react-test-renderer": "^18.3.0"
+  },
+  "keywords": [
+    "criteria",
+    "react",
+    "hooks",
+    "sincpro"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sincpro-SRL/sincpro_criteria.git",
+    "directory": "packages/criteria-react"
+  },
+  "author": "Gutierrez, Andres <andres.gutierrez@sincpro.com.bo>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  }
+}

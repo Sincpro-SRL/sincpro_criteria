@@ -1,2 +1,6 @@
 dist/
 node_modules/
+
+# copied byte-for-byte from sincpro_framework (make sync-parity) — reformatting it here would
+# make every copy look "out of date" to `make check-parity` even when the content is identical
+packages/criteria/tests/criteria-parity.json

@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "sourceMap": false,
+    "declarationMap": false,
+    // Overrides (not merges) the dev tsconfig's `paths` — that one also points
+    // `@sincpro/criteria` at the sibling package's SOURCE, which is right for a fast
+    // `tsc --noEmit` dev loop but wrong here: a build must resolve it as the real
+    // dependency (its `dist/`, via the node_modules symlink), or `rootDir` fails because it
+    // would have to emit files from outside `src/`.
+    "paths": {
+      "@sincpro/criteria-react": ["./src/index.ts"],
+      "@sincpro/criteria-react/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts"],
+  "tsc-alias": {
+    "resolveFullPaths": true
+  }
+}
