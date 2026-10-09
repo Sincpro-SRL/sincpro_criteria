@@ -56,6 +56,15 @@ export interface FieldMeta {
   choices?: unknown[];
 
   /**
+   * The field's own name for a screen, `{default, ...languages}`, as the engine declares it
+   * on the field itself. Empty when the field declared none; {@link labelOf} reads it.
+   */
+  label?: Record<string, string>;
+
+  /** What the field is for, longer than the label, in the same `{default, ...}` shape. */
+  help?: Record<string, string>;
+
+  /**
    * A decimal: its values travel as text so no digit is lost (`"10.50"`), and they compare as
    * numbers — `matches`, a sort and a cursor read them that way when handed this `meta`.
    */
@@ -97,6 +106,16 @@ export interface FieldMeta {
   identified_by?: string | null;
 
   /**
+   * The field read on THIS side to match a relation, with {@link FieldMeta.related_field} the
+   * one read on the other. The pair says outright what `identified_by` leaves to a
+   * cardinality convention.
+   */
+  parent_field?: string | null;
+
+  /** The field read on the OTHER side of a relation — see {@link FieldMeta.parent_field}. */
+  related_field?: string | null;
+
+  /**
    * The shape of the other side: always for an embedded value, and for a relational field
    * once it was expanded, cut by the same mask.
    */
@@ -106,13 +125,54 @@ export interface FieldMeta {
   kind: FieldKind;
 }
 
+/** How a literal is compared with one field when a select searches: mirrors `MatchMode`. */
+export type MatchMode = "equal" | "prefix" | "contains";
+
+/**
+ * One field a select's literal is compared with, and how: what the entity's `presentation`
+ * declared (`Match.prefix(a.code)`). `prefix` is the `starts with` operator, `contains` is
+ * `like`, `equal` is `=`.
+ */
+export interface Match {
+  field: string;
+  mode: MatchMode;
+}
+
 /** What a caller is told about an aggregate: one map of fields, each saying which it is. */
 export interface Meta {
   aggregate: string;
   identity: string;
   default_order: string;
   fields: Record<string, FieldMeta>;
-  translations: Translated;
+
+  /**
+   * The aggregate's own name for a screen, `{default, ...languages}`: what the engine sends.
+   * {@link nameOf} reads it.
+   */
+  name?: Record<string, string>;
+
+  /**
+   * The field shown beside the identity — what a select and a many2one show. Empty when the
+   * entity names none.
+   */
+  display?: string;
+
+  /** How a select's literal finds a record, field by field, as the entity declared it. */
+  search?: Match[];
+
+  /**
+   * What a read of one record brings when it asks for the detail: a criteria as the engine
+   * writes it, nulls included. Read it with `readCriteria(meta.detail)` before merging or
+   * sending it.
+   */
+  detail?: Record<string, unknown> | null;
+
+  /**
+   * Every word a screen shows, gathered in one object. Built by {@link describeRows} for rows
+   * in hand; the engine sends `name` and each field's `label`/`help` instead, and the label
+   * helpers read both.
+   */
+  translations?: Translated;
 }
 
 /**
@@ -195,7 +255,10 @@ export function labelOf(
   field: string,
   locale?: string,
 ): string {
-  const labels = meta?.translations?.labels?.[field];
+  const gathered = meta?.translations?.labels?.[field];
+  const declared = meta?.fields[field]?.label;
+  const labels =
+    gathered ?? (declared && Object.keys(declared).length > 0 ? declared : undefined);
   if (labels === undefined) return field;
   return (locale ? labels[locale] : undefined) ?? labels.default ?? field;
 }
@@ -208,7 +271,7 @@ export function labelOf(
  */
 export function nameOf(meta: Meta | null | undefined, locale?: string): string {
   if (meta == null) return "";
-  const name = meta.translations?.name;
+  const name = meta.translations?.name ?? meta.name;
   if (name === undefined) return meta.aggregate;
   return (locale ? name[locale] : undefined) ?? name.default ?? meta.aggregate;
 }
