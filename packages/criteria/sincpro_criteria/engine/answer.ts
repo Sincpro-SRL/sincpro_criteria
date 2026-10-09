@@ -30,9 +30,9 @@ export function answer<T = AnyRecord>(
   const { criteria, dropped, refused } = validate<T>(plain(written), meta);
   if (refused.length > 0) throw new InvalidCriteria(refused[0]!.message);
 
-  const matching = filtered(rows, criteria.where);
+  const matching = filtered(rows, criteria.where, meta);
   const sorts = orderingFor(criteria, meta);
-  const page = paginate(sortRows(matching, sorts), criteria, sorts);
+  const page = paginate(sortRows(matching, sorts, meta), criteria, sorts, meta);
 
   return {
     rows: page.rows,
@@ -62,7 +62,7 @@ export function answerGroups<T = AnyRecord>(
   const { criteria, dropped, refused } = validate<T>(plain(written), meta);
   if (refused.length > 0) throw new InvalidCriteria(refused[0]!.message);
 
-  const matching = filtered(rows, criteria.where);
+  const matching = filtered(rows, criteria.where, meta);
   return {
     rows: bucketsOf(matching, criteria, meta),
     cursor: null,

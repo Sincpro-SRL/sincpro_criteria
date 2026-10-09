@@ -2,7 +2,8 @@ import { decodeBase64Url, encodeBase64Url } from "@sincpro/criteria/criteria/bas
 import type { AnyRecord, Sort } from "@sincpro/criteria/criteria/grammar";
 import { InvalidCriteria } from "@sincpro/criteria/criteria/grammar";
 import { formatOrder } from "@sincpro/criteria/criteria/order";
-import { compareValues, sameValue } from "@sincpro/criteria/engine/compare";
+import { compareValues, isExact, sameValue } from "@sincpro/criteria/engine/compare";
+import type { Meta } from "@sincpro/criteria/meta/meta";
 
 const DATETIME_TAG = "__dt__";
 const DATE_TAG = "__d__";
@@ -69,12 +70,14 @@ export function beyond<T = AnyRecord>(
   record: T,
   keys: CursorKeys,
   sorts: readonly Sort<T>[],
+  meta?: Meta,
 ): boolean {
   for (const [at, sort] of sorts.entries()) {
     const mine = (record as AnyRecord)[sort.field];
     const theirs = keys.keys[at];
-    if (sameValue(mine, theirs)) continue;
-    const side = compareValues(mine, theirs);
+    const exact = isExact(meta, sort.field);
+    if (sameValue(mine, theirs, exact)) continue;
+    const side = compareValues(mine, theirs, exact);
     return sort.descending ? side < 0 : side > 0;
   }
   return false;

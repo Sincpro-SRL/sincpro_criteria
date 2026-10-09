@@ -56,6 +56,25 @@ export interface FieldMeta {
   choices?: unknown[];
 
   /**
+   * A decimal: its values travel as text so no digit is lost (`"10.50"`), and they compare as
+   * numbers — `matches`, a sort and a cursor read them that way when handed this `meta`.
+   */
+  exact?: boolean;
+
+  /**
+   * Form hints: what a form starts from, never a rule — a component that says otherwise
+   * wins, and the server accepts the write either way. `readonly`/`required` always;
+   * `default` for a new record; each `*_when` while its condition holds over the record,
+   * evaluated with `matches(record, condition, meta)`.
+   */
+  readonly?: boolean;
+  required?: boolean;
+  default?: unknown;
+  readonly_when?: Expression | null;
+  required_when?: Expression | null;
+  visible_when?: Expression | null;
+
+  /**
    * False for every nullable column: a keyset comparison omits rows holding NULL, so
    * ordering by one loses rows from the pagination in silence.
    */
