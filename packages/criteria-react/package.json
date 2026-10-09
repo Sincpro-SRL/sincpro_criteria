@@ -1,6 +1,6 @@
 {
   "name": "@sincpro/criteria-react",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "React hooks over @sincpro/criteria's Reading and Buckets, plus a query-key helper for wiring a resource into an existing cache (react-query, …). See docs/DESIGN.md at the repo root for why this is a separate package.",
   "type": "module",
   "main": "./dist/index.js",
