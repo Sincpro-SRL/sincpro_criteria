@@ -4,7 +4,7 @@ PACKAGE := @sincpro/criteria
 
 # From packages/criteria/, ../../../sincpro_framework is the sibling checkout at ~/dev/.
 FRAMEWORK_REPO ?= ../../../sincpro_framework
-PARITY_SRC := $(FRAMEWORK_REPO)/tests/ddd/criteria-parity.json
+PARITY_SRC := $(FRAMEWORK_REPO)/tests/ddd/criteria/criteria-parity.json
 PARITY_DST := tests/criteria-parity.json
 
 typecheck:

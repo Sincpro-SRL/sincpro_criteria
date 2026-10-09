@@ -31,6 +31,7 @@ export const OPERATORS = [
   "in",
   "not in",
   "like",
+  "starts with",
   ">",
   ">=",
   "<",

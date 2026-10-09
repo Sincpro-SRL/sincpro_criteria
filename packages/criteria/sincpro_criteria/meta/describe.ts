@@ -6,7 +6,7 @@ const COMPARABLE: Operator[] = ["=", "!=", ">", ">=", "<", "<=", "between"];
 const LISTED: Operator[] = ["in", "not in"];
 
 const OPERATORS_BY_TYPE: Record<string, Operator[]> = {
-  text: ["=", "!=", "like", ...LISTED],
+  text: ["=", "!=", "like", "starts with", ...LISTED],
   integer: [...COMPARABLE, ...LISTED],
   number: COMPARABLE,
   boolean: ["="],
