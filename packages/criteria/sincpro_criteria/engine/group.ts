@@ -134,7 +134,7 @@ function pageOfIds<T>(
 ): { ids: unknown[]; cursor: string | null } {
   if (!pageAsked(criteria.pagination)) return { ids: [], cursor: null };
   const sorts = orderingFor(criteria, meta);
-  const inOrder = sortRows(rows, sorts);
+  const inOrder = sortRows(rows, sorts, meta);
   const limit = criteria.pagination?.limit ?? inOrder.length;
   const kept = inOrder.slice(0, limit);
   const last = kept[kept.length - 1];

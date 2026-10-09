@@ -44,6 +44,6 @@ export function fromRows<T = AnyRecord>(
     read: (criteria: Criteria<T>): Page<T> => answer(rows, criteria, meta),
     group: (criteria: Criteria<T>): Page<Bucket<T>> => answerGroups(rows, criteria, meta),
     pivot: (criteria: Criteria<T>, axes: Axes<T>): Pivot =>
-      pivotOf(filtered(rows, validate<T>(criteria, meta).criteria.where), axes),
+      pivotOf(filtered(rows, validate<T>(criteria, meta).criteria.where, meta), axes),
   };
 }

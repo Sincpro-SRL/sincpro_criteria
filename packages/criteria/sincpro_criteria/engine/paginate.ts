@@ -1,6 +1,7 @@
 import type { AnyRecord, Criteria, Sort } from "@sincpro/criteria/criteria/grammar";
 import { beyond, readCursor, signatureOf } from "@sincpro/criteria/engine/cursor";
 import { mintCursor } from "@sincpro/criteria/engine/cursor";
+import type { Meta } from "@sincpro/criteria/meta/meta";
 
 /** How many rows a page brings when nobody said. The engine's own default. */
 export const DEFAULT_LIMIT = 50;
@@ -24,13 +25,14 @@ export function paginate<T = AnyRecord>(
   ordered: readonly T[],
   criteria: Criteria<T>,
   sorts: readonly Sort<T>[],
+  meta?: Meta,
 ): Paged<T> {
   const { limit = DEFAULT_LIMIT, strategy } = criteria.pagination ?? {};
 
   let walked = [...ordered];
   if (strategy !== undefined && "token" in strategy && strategy.token !== null) {
     const keys = readCursor(strategy.token, signatureOf(sorts));
-    walked = walked.filter((row) => beyond(row, keys, sorts));
+    walked = walked.filter((row) => beyond(row, keys, sorts, meta));
   }
   if (strategy !== undefined && "rows" in strategy) {
     walked = walked.slice(strategy.rows);
