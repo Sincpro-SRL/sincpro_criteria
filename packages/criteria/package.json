@@ -1,6 +1,6 @@
 {
   "name": "@sincpro/criteria",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The read grammar of the Sincpro engine in TypeScript: criteria, model definition, the in-memory engine that answers one, and readings that hold the cursor for you. No transport, no framework, no dependencies.",
   "type": "module",
   "main": "./dist/index.js",
