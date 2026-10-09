@@ -13,9 +13,27 @@ describe("one comparison, the way SQL answers it", () => {
     assert.equal(holds(11, "between", [1, 10]), false);
   });
 
+  it("reads a prefix and leaves the wildcards of SQL as text", () => {
+    assert.equal(holds("1.2.30", "starts with", "1.2.3"), true);
+    assert.equal(holds("1.2.1.2.3", "starts with", "1.2.3"), false);
+    assert.equal(holds("Labs 2024", "starts with", "lab"), true);
+    assert.equal(holds("Descuento 50% off", "like", "50%"), true);
+    assert.equal(holds("50 off", "starts with", "50%"), false);
+    assert.equal(holds("axb", "like", "a_b"), false);
+  });
+
   it("answers nothing about a value that is not there", () => {
     // NULL compares to nothing: neither true nor false, so the row is left out.
-    for (const operator of ["=", "!=", ">", "<", "in", "like", "contains"] as const) {
+    for (const operator of [
+      "=",
+      "!=",
+      ">",
+      "<",
+      "in",
+      "like",
+      "starts with",
+      "contains",
+    ] as const) {
       assert.equal(holds(null, operator, 1), false, `null ${operator}`);
       assert.equal(holds(undefined, operator, 1), false, `undefined ${operator}`);
     }

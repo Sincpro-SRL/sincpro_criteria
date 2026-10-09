@@ -74,6 +74,11 @@ The operators are the symbols the model definition publishes in `ops`, so what a
 reads and what you write are the same vocabulary — there is no table translating `gt` to `>`
 anywhere.
 
+Text is searched two ways, both case-insensitive: `like` contains the value anywhere, and
+`starts with` is a prefix — `["code", "starts with", "1.2.3"]` finds `1.2.30`, not
+`1.2.1.2.3`. In either, `%` and `_` are the text itself, never wildcards: `50%` finds
+`Descuento 50% off` and nothing that merely starts with `50`.
+
 **The triple never travels.** It is read into `{field, operator, value}` before it leaves, so
 the wire, a saved reading and `model_meta_data` all keep saying the same thing. `q.value` is
 that plain object; it goes in a URL, a POST body or a queue message unchanged.

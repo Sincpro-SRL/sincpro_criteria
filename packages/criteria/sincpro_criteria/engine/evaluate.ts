@@ -17,6 +17,8 @@ import {
  * holds(null, ">", 1); // false — NULL compares to nothing
  * holds(null, "is null", true); // true
  * holds([], "=", []); // true — the empty-list question
+ * holds("Labs 2024", "starts with", "lab"); // true — a prefix, case-insensitive
+ * holds("a_b", "like", "a_b"); // true — `%` and `_` are the text itself, as SQL is told
  */
 export function holds(actual: unknown, operator: Operator, value: Value): boolean {
   if (operator === "is null") return value ? missing(actual) : !missing(actual);
@@ -53,6 +55,8 @@ export function holds(actual: unknown, operator: Operator, value: Value): boolea
     }
     case "like":
       return String(actual).toLowerCase().includes(String(value).toLowerCase());
+    case "starts with":
+      return String(actual).toLowerCase().startsWith(String(value).toLowerCase());
     case "contains":
       return member(actual, value);
     case "not contains":
