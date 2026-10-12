@@ -16,6 +16,7 @@ import {
   GRAINS,
   MEASURE_FUNCTIONS,
   OPERATORS,
+  PARTS,
   PERIODS,
   readCriteria,
   UNITS,
@@ -34,6 +35,16 @@ describe("the published schema", () => {
     assert.deepEqual(schema.$defs.Grain.enum, [...GRAINS]);
     const level = schema.$defs.Level.properties.grain.anyOf;
     assert.deepEqual(level, [{ $ref: "#/$defs/Grain" }, { type: "null" }]);
+  });
+
+  it("declares the same parts of a date, and a level that may be filled", () => {
+    assert.deepEqual(schema.$defs.Part.enum, [...PARTS]);
+    assert.deepEqual(Object.keys(schema.$defs.Level.properties), [
+      "field",
+      "grain",
+      "part",
+      "fill",
+    ]);
   });
 
   it("declares the same folds", () => {

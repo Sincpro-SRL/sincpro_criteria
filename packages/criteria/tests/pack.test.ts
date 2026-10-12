@@ -84,7 +84,7 @@ describe("reading a criteria that came from outside", () => {
 
   it("refuses a fold the engine cannot compute", () => {
     assert.throws(
-      () => readCriteria({ grouping: { measures: { rows: ["median", "row_count"] } } }),
+      () => readCriteria({ grouping: { measures: { rows: ["mode", "row_count"] } } }),
       InvalidCriteria,
     );
   });

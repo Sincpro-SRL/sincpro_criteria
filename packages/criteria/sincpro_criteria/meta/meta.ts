@@ -123,6 +123,15 @@ export interface FieldMeta {
   help?: Record<string, string>;
 
   /**
+   * Whether a grouping may split by this field (`groupable`), the functions it can be folded with
+   * (`aggregates`), and whether it is computed by the server rather than a column — read-only,
+   * and filtered, ordered and grouped like one. Absent means the server did not say.
+   */
+  groupable?: boolean;
+  aggregates?: string[];
+  computed?: boolean;
+
+  /**
    * A decimal: its values travel as text so no digit is lost (`"10.50"`), and they compare as
    * numbers — `matches`, a sort and a cursor read them that way when handed this `meta`.
    */

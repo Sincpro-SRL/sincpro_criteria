@@ -40,6 +40,7 @@ export type {
   PageStrategy,
   Pagination,
   Param,
+  Part,
   Period,
   PeriodName,
   Shifted,
@@ -57,8 +58,10 @@ export {
   InvalidCriteria,
   isGrain,
   isOperator,
+  isPart,
   MEASURE_FUNCTIONS,
   OPERATORS,
+  PARTS,
   PERIODS,
   UNITS,
 } from "@sincpro/criteria/criteria/grammar";
