@@ -74,7 +74,7 @@ async function served(packed: string) {
     datasets: page.rows,
     cursor: page.cursor,
     count: page.count,
-    model_meta_data: page.meta,
+    entity_meta_data: page.meta,
     dropped: page.dropped,
   };
 }

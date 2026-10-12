@@ -105,7 +105,7 @@ export interface Envelope {
   count: Count | null;
 
   /** What may be filtered, ordered and walked, and with which operators. */
-  model_meta_data: Meta | null;
+  entity_meta_data: Meta | null;
 
   /** Conditions the model could not answer. */
   dropped: Dropped[];
@@ -118,7 +118,7 @@ export interface Envelope {
  * @example
  * type ListDatasets = PaginatedResponse<"datasets", Dataset>;
  * const answer: ListDatasets = await read();
- * answer.datasets; answer.cursor; answer.model_meta_data;
+ * answer.datasets; answer.cursor; answer.entity_meta_data;
  */
 export type PaginatedResponse<Field extends string, T> = { [K in Field]: T[] } & Envelope;
 
@@ -143,7 +143,7 @@ export type AnyPaginatedResponse<T> = Envelope & Record<string, unknown | T[]>;
 const ENVELOPE_FIELDS: ReadonlySet<string> = new Set([
   "cursor",
   "count",
-  "model_meta_data",
+  "entity_meta_data",
   "dropped",
 ]);
 
@@ -161,7 +161,7 @@ export function pageFrom<T>(answer: Envelope & Record<string, unknown>): Page<T>
     rows: recordsOf<T>(answer),
     cursor: answer.cursor ?? null,
     count: answer.count ?? null,
-    meta: answer.model_meta_data ?? null,
+    meta: answer.entity_meta_data ?? null,
     dropped: answer.dropped ?? [],
   };
 }

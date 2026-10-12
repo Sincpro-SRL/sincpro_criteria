@@ -4,8 +4,12 @@ PACKAGE := @sincpro/criteria
 
 # From packages/criteria/, ../../../sincpro_framework is the sibling checkout at ~/dev/.
 FRAMEWORK_REPO ?= ../../../sincpro_framework
-PARITY_SRC := $(FRAMEWORK_REPO)/tests/ddd/criteria/criteria-parity.json
-PARITY_DST := tests/criteria-parity.json
+CONTRACT_SRC := $(FRAMEWORK_REPO)/tests/ddd/criteria
+# What the framework writes and this package reads, byte for byte: the cases of what a filter
+# keeps, the cases of what a dynamic value reads to, and the JSON Schema of a criteria.
+CONTRACT := criteria-parity.json:tests/criteria-parity.json \
+	criteria-resolution.json:tests/criteria-resolution.json \
+	criteria.schema.json:criteria.schema.json
 
 typecheck:
 	@npx tsc --noEmit
@@ -29,22 +33,30 @@ test:
 	@node --import tsx --test "tests/**/*.test.ts"
 
 sync-parity:
-	@if [ ! -f "$(PARITY_SRC)" ]; then \
-		echo >&2 "✘ $(PARITY_SRC) not found — set FRAMEWORK_REPO=<path to a sincpro_framework checkout>"; \
+	@if [ ! -d "$(CONTRACT_SRC)" ]; then \
+		echo >&2 "✘ $(CONTRACT_SRC) not found — set FRAMEWORK_REPO=<path to a sincpro_framework checkout>"; \
 		exit 1; \
 	fi
-	@cp "$(PARITY_SRC)" "$(PARITY_DST)"
-	@echo "✓ Copied $(PARITY_SRC) -> $(PARITY_DST) — run 'make test' to confirm both engines still agree"
+	@for pair in $(CONTRACT); do \
+		src="$(CONTRACT_SRC)/$${pair%%:*}"; dst="$${pair##*:}"; \
+		cp "$$src" "$$dst"; echo "✓ Copied $$src -> $$dst"; \
+	done
+	@echo "   run 'make test' to confirm both engines still agree"
 
 check-parity:
-	@if [ ! -f "$(PARITY_SRC)" ]; then \
-		echo "⚠ $(PARITY_SRC) not found — skipping parity fixture check (set FRAMEWORK_REPO to a sincpro_framework checkout to enable it)"; \
-	elif diff -q "$(PARITY_SRC)" "$(PARITY_DST)" >/dev/null; then \
-		echo "✓ $(PARITY_DST) is in sync with $(FRAMEWORK_REPO)"; \
-	else \
-		echo >&2 "✘ $(PARITY_DST) is out of date with $(PARITY_SRC) — run: make sync-parity"; \
-		exit 1; \
-	fi
+	@if [ ! -d "$(CONTRACT_SRC)" ]; then \
+		echo "⚠ $(CONTRACT_SRC) not found — skipping contract check (set FRAMEWORK_REPO to a sincpro_framework checkout to enable it)"; \
+		exit 0; \
+	fi; \
+	stale=0; \
+	for pair in $(CONTRACT); do \
+		src="$(CONTRACT_SRC)/$${pair%%:*}"; dst="$${pair##*:}"; \
+		if ! diff -q "$$src" "$$dst" >/dev/null; then \
+			echo >&2 "✘ $$dst is out of date with $$src"; stale=1; \
+		fi; \
+	done; \
+	if [ "$$stale" = "1" ]; then echo >&2 "   run: make sync-parity"; exit 1; fi; \
+	echo "✓ the contract is in sync with $(FRAMEWORK_REPO)"
 
 # The root Makefile's `verify-format` runs this in every package, then checks once — from the
 # repo root — whether any of it left the working tree dirty. Doing that check here too would

@@ -1,5 +1,6 @@
 import { any } from "@sincpro/criteria/criteria/filter";
 import type { AnyRecord, Expression, Operator } from "@sincpro/criteria/criteria/grammar";
+import { GRAINS, PERIODS, UNITS } from "@sincpro/criteria/criteria/grammar";
 
 /** The logical type of a field: the full vocabulary the engine publishes. */
 export const FIELD_TYPES = [
@@ -39,6 +40,63 @@ export interface Translated {
   labels: Record<string, Record<string, string>>;
   help?: Record<string, Record<string, string>>;
 }
+
+/**
+ * One dynamic value the server reads, so a filter builder offers «Today» and «This month» from
+ * what the backend says and a value a project adds appears with no client release.
+ */
+export interface ResolverMeta {
+  /** The name under `"$"`. */
+  name: string;
+
+  /** What it reads to: `date`, `datetime`, `range`, `field`, or `any` for what a key holds. */
+  returns: string;
+
+  /** Each parameter and its kind: `span`, `grain`, `period`, `integer`, `boolean`, `text`. */
+  params: Record<string, string>;
+
+  /** The values a parameter may take, when it takes only some. */
+  choices: Record<string, readonly string[]>;
+}
+
+const SHIFT = { plus: "span", start_of: "grain" };
+const SHIFT_CHOICES = { plus: [...UNITS], start_of: [...GRAINS] };
+
+/**
+ * The dynamic values the engine reads, as `Meta.resolvers` publishes them.
+ *
+ * Here for a client that has no definition from a server (rows in hand), and checked against
+ * the one the engine publishes, so the two cannot say different things.
+ */
+export const RESOLVERS: readonly ResolverMeta[] = [
+  { name: "today", returns: "date", params: SHIFT, choices: SHIFT_CHOICES },
+  { name: "now", returns: "datetime", params: SHIFT, choices: SHIFT_CHOICES },
+  {
+    name: "period",
+    returns: "range",
+    params: {
+      name: "period",
+      unit: "grain",
+      last: "integer",
+      next: "integer",
+      include_current: "boolean",
+    },
+    choices: { name: [...PERIODS], unit: [...GRAINS] },
+  },
+  {
+    name: "context",
+    returns: "any",
+    params: { key: "text", ...SHIFT },
+    choices: SHIFT_CHOICES,
+  },
+  {
+    name: "param",
+    returns: "any",
+    params: { name: "text", ...SHIFT },
+    choices: SHIFT_CHOICES,
+  },
+  { name: "field", returns: "field", params: { name: "text" }, choices: {} },
+];
 
 /**
  * What the model says about one of its fields.
@@ -168,6 +226,12 @@ export interface Meta {
   detail?: Record<string, unknown> | null;
 
   /**
+   * The dynamic values a condition's value may be (`today`, `context`, …): what a filter
+   * builder offers beside a literal.
+   */
+  resolvers?: ResolverMeta[];
+
+  /**
    * Every word a screen shows, gathered in one object. Built by {@link describeRows} for rows
    * in hand; the engine sends `name` and each field's `label`/`help` instead, and the label
    * helpers read both.
@@ -198,7 +262,7 @@ export function isRelational(field: FieldMeta): boolean {
 /**
  * Every function below takes `meta` as `Meta | null | undefined`, not just `Meta`, on
  * purpose: `reading.meta` genuinely is `null` before the first page arrives, an older backend
- * may never send `model_meta_data` at all, and `criteria.meta: false` turns it off by choice.
+ * may never send `entity_meta_data` at all, and `criteria.meta: false` turns it off by choice.
  * None of that is a bug in the caller — a screen built against a definition that has not
  * arrived yet is the normal first render, not an exception. Every function here answers the
  * same way {@link operatorsFor} already answered a field the definition never mentioned: an

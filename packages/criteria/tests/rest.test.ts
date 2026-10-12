@@ -11,7 +11,7 @@ const OK_PAGE = {
   datasets: [{ dataset_id: "d1", name: "labs.csv" }],
   cursor: null,
   count: { value: 1, exact: true },
-  model_meta_data: datasetMeta,
+  entity_meta_data: datasetMeta,
   dropped: [],
 };
 
@@ -19,7 +19,7 @@ const OK_GROUPS = {
   groups: [{ field: "encoding", value: "utf-8", count: 5, criteria: {} }],
   cursor: null,
   count: null,
-  model_meta_data: null,
+  entity_meta_data: null,
   dropped: [],
 };
 

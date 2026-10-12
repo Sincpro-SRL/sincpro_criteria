@@ -11,6 +11,8 @@ export {
   plain,
   readLevel,
 } from "@sincpro/criteria/criteria/builder";
+export type { Shift, Window } from "@sincpro/criteria/criteria/dynamic";
+export { dynamic, isDynamic, readValue } from "@sincpro/criteria/criteria/dynamic";
 export type { Filter, Triple } from "@sincpro/criteria/criteria/filter";
 export { readFilter, where } from "@sincpro/criteria/criteria/filter";
 export { measure, readMeasure } from "@sincpro/criteria/criteria/measure";
@@ -21,27 +23,44 @@ export type {
   Condition,
   CountMode,
   Criteria,
+  Dynamic,
+  DynamicKind,
   Expression,
   Fields,
+  FromContext,
+  FromField,
   Grain,
   Grouping,
   Level,
   Measure,
   MeasureFunction,
+  NamedPeriod,
+  Now,
   Operator,
   PageStrategy,
   Pagination,
+  Param,
+  Period,
+  PeriodName,
+  Shifted,
   Sort,
+  Span,
   Specification,
+  Today,
+  Unit,
   Value,
+  WindowPeriod,
 } from "@sincpro/criteria/criteria/grammar";
 export {
+  DYNAMIC_KINDS,
   GRAINS,
   InvalidCriteria,
   isGrain,
   isOperator,
   MEASURE_FUNCTIONS,
   OPERATORS,
+  PERIODS,
+  UNITS,
 } from "@sincpro/criteria/criteria/grammar";
 
 /* ── reading one: a saved filter, a URL, what came back ─────────────────────────────── */
@@ -66,6 +85,7 @@ export type {
   FieldMeta,
   FieldType,
   Meta,
+  ResolverMeta,
   Translated,
 } from "@sincpro/criteria/meta/meta";
 export {
@@ -78,6 +98,7 @@ export {
   labelOf,
   nameOf,
   operatorsFor,
+  RESOLVERS,
   searchOver,
 } from "@sincpro/criteria/meta/meta";
 
@@ -116,3 +137,5 @@ export type { Awaitable, LiveChannel, Source } from "@sincpro/criteria/source/so
 /* ── the two the engine lends: narrowing a list already in hand ─────────────────────── */
 export { filtered, matches } from "@sincpro/criteria/engine/evaluate";
 export type { Axes } from "@sincpro/criteria/engine/pivot";
+export type { ResolutionContext } from "@sincpro/criteria/engine/resolve";
+export { hasDynamicValues, resolve } from "@sincpro/criteria/engine/resolve";
