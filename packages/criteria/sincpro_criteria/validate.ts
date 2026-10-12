@@ -1,6 +1,12 @@
 import type { CriteriaLike } from "@sincpro/criteria/criteria/builder";
 import { plain } from "@sincpro/criteria/criteria/builder";
-import { isAll, isAny, isCondition } from "@sincpro/criteria/criteria/expression";
+import { isDynamic } from "@sincpro/criteria/criteria/dynamic";
+import {
+  conditionsOf,
+  isAll,
+  isAny,
+  isCondition,
+} from "@sincpro/criteria/criteria/expression";
 import type {
   AnyRecord,
   Condition,
@@ -18,7 +24,7 @@ import type { Dropped } from "@sincpro/criteria/page/page";
 /** Something the server will reject outright, with the reason it will give. */
 export interface Refusal {
   field: string;
-  reason: "no_such_field" | "not_sortable" | "unknown_total";
+  reason: "no_such_field" | "not_sortable" | "unknown_total" | "bad_dynamic_value";
   message: string;
 }
 
@@ -44,10 +50,10 @@ export interface Validation<T = AnyRecord> {
  * Checks a criteria against a model definition.
  *
  * @param written - the criteria, as an object or a builder
- * @param meta - the definition that came back in `model_meta_data`
+ * @param meta - the definition that came back in `entity_meta_data`
  *
  * @example
- * const { criteria, dropped, refused } = validate(q, answer.model_meta_data!);
+ * const { criteria, dropped, refused } = validate(q, answer.entity_meta_data!);
  * if (refused.length === 0) await read(criteria);
  */
 export function validate<T = AnyRecord>(written: CriteriaLike<T>, meta: Meta): Validation<T> {
@@ -60,6 +66,18 @@ export function validate<T = AnyRecord>(written: CriteriaLike<T>, meta: Meta): V
     const pruned = prune(criteria.where as Expression, meta, dropped);
     if (pruned === undefined) delete checked.where;
     else checked.where = pruned as Expression<T>;
+  }
+
+  for (const leaf of conditionsOf(criteria.where as Expression | undefined)) {
+    if (isDynamic(leaf.value) && leaf.value.$ === "period" && leaf.operator !== "between") {
+      refused.push({
+        field: leaf.field,
+        reason: "bad_dynamic_value",
+        message:
+          `a period is a range and takes the operator 'between'; ` +
+          `'${leaf.field}' asked it with '${leaf.operator}'`,
+      });
+    }
   }
 
   for (const sort of criteria.order ?? []) {
@@ -164,7 +182,7 @@ function prune(
   if (isCondition(expression)) {
     const kept = keep(expression, meta);
     if ("reason" in kept) {
-      dropped.push({ field: expression.field, reason: kept.reason });
+      dropped.push({ field: kept.field ?? expression.field, reason: kept.reason });
       return undefined;
     }
     return kept.condition;
@@ -185,16 +203,34 @@ function prune(
   return inner === undefined ? undefined : { negate: inner };
 }
 
-/** One condition, kept and read — or the reason it cannot be. */
+/** The operators that compare a column with another column of the same row. */
+const SAME_ROW: readonly Operator[] = ["=", "!=", "<", "<=", ">", ">="];
+
+/** One condition, kept and read — or the reason it cannot be, and the field it is about. */
 function keep(
   condition: Condition,
   meta: Meta,
-): { condition: Condition } | { reason: Dropped["reason"] } {
+): { condition: Condition } | { reason: Dropped["reason"]; field?: string } {
   const field = meta.fields[condition.field];
   if (field === undefined) return { reason: "unknown_field" };
   if (!field.ops.includes(condition.operator)) return { reason: "unsupported_operator" };
 
-  const read = readValue(field, condition.operator, condition.value);
+  // A column against another needs the other to exist, to be of the same type, and an operator
+  // that compares; it is not read as a value, because it is the row's own.
+  if (isDynamic(condition.value) && condition.value.$ === "field") {
+    const other = meta.fields[condition.value.name];
+    if (other === undefined) return { reason: "unknown_field", field: condition.value.name };
+    if (!SAME_ROW.includes(condition.operator) || other.type !== field.type) {
+      return { reason: "bad_value" };
+    }
+    return { condition };
+  }
+
+  // A value the server reads when the filter runs has no type to read it into yet, and a
+  // period is a range, which `between` does not take as a pair of bounds.
+  if (isDynamic(condition.value)) return { condition };
+
+  const read = readIntoType(field, condition.operator, condition.value);
   if (read === undefined) return { reason: "bad_value" };
   return { condition: { ...condition, value: read } };
 }
@@ -207,7 +243,7 @@ function keep(
  * multi-valued operator reads every member, and `contains` asks about one member of a list,
  * so its value is a member's type.
  */
-function readValue(field: FieldMeta, operator: Operator, value: Value): Value | undefined {
+function readIntoType(field: FieldMeta, operator: Operator, value: Value): Value | undefined {
   if (operator === "is null") return readBoolean(value);
 
   if (operator === "between") {

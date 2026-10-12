@@ -13,10 +13,121 @@ export type AnyRecord = Record<string, unknown>;
 export type Fields<T> = Extract<keyof T, string>;
 
 /**
- * What a condition compares against: whatever travels in JSON, plus `Date`, because on
- * this side of the wire a date is a `Date` until `JSON.stringify` writes it out.
+ * The units a {@link Span} counts in, as the engine spells them. Plural, because a span says
+ * how MANY: `{days: -30}`.
  */
-export type Value = string | number | boolean | null | Date | Value[];
+export const UNITS = ["minutes", "hours", "days", "weeks", "months", "years"] as const;
+
+export type Unit = (typeof UNITS)[number];
+
+/**
+ * A signed amount of time, by unit. Only the units asked for travel: `{days: -30}` is thirty
+ * days back and `{months: 1, days: -1}` a month ahead and a day back.
+ */
+export type Span = { [K in Unit]?: number };
+
+/**
+ * The named spans of the calendar a `period` can be, each a range `[start, end)`.
+ *
+ * A closed list, in the engine's order: a name outside it is refused there, so here it does not
+ * compile.
+ */
+export const PERIODS = [
+  "today",
+  "yesterday",
+  "tomorrow",
+  "this_week",
+  "last_week",
+  "next_week",
+  "this_month",
+  "last_month",
+  "next_month",
+  "this_quarter",
+  "last_quarter",
+  "next_quarter",
+  "this_year",
+  "last_year",
+  "next_year",
+] as const;
+
+export type PeriodName = (typeof PERIODS)[number];
+
+/**
+ * What a dynamic value is: the name under `"$"`, and the whole of what the engine can read.
+ * A closed set, because the name decides what runs.
+ */
+export const DYNAMIC_KINDS = ["today", "now", "period", "context", "param", "field"] as const;
+
+export type DynamicKind = (typeof DYNAMIC_KINDS)[number];
+
+/** What a date-valued dynamic value may do: move, then snap to the start of a calendar unit. */
+export interface Shifted {
+  /** How far to move it, signed: `{days: -30}` is thirty days ago. Applied first. */
+  plus?: Span;
+
+  /** The start of the calendar unit it falls in once moved: `"month"` is the first of the month. */
+  start_of?: Grain;
+}
+
+/** The current date, in the timezone of the server's context. */
+export interface Today extends Shifted {
+  $: "today";
+}
+
+/** The current instant, in UTC. */
+export interface Now extends Shifted {
+  $: "now";
+}
+
+/** A value of the server's own context — the user, the tenant, a date it holds. Never the client's. */
+export interface FromContext extends Shifted {
+  $: "context";
+  key: string;
+}
+
+/** A value the caller supplied for this call; `name` may be a path with dots. */
+export interface Param extends Shifted {
+  $: "param";
+  name: string;
+}
+
+/** A named span of the calendar, as a range `[start, end)`. Only with the operator `between`. */
+export interface NamedPeriod {
+  $: "period";
+  name: PeriodName;
+}
+
+/**
+ * A window of whole units counted from the current one: the `last` N before it, or the `next` N
+ * after it. The current unit is left out unless `include_current`.
+ */
+export type WindowPeriod = { $: "period"; unit: Grain; include_current?: boolean } & (
+  { last: number; next?: never } | { next: number; last?: never }
+);
+
+export type Period = NamedPeriod | WindowPeriod;
+
+/** Another field of the same row: a column against a column. Not read before the row. */
+export interface FromField {
+  $: "field";
+  name: string;
+}
+
+/**
+ * A value that is not a literal: stored as itself and read by the server when the filter runs, so
+ * a saved view that says `today` means the day it is opened.
+ *
+ * It is an object with the reserved key `"$"`; no literal can collide with it. Build one with
+ * `dynamic`.
+ */
+export type Dynamic = Today | Now | FromContext | Param | Period | FromField;
+
+/**
+ * What a condition compares against: whatever travels in JSON, plus `Date`, because on
+ * this side of the wire a date is a `Date` until `JSON.stringify` writes it out, plus a
+ * {@link Dynamic} value, alone or as an item of a list.
+ */
+export type Value = string | number | boolean | null | Date | Dynamic | Value[];
 
 /**
  * How a question is asked.
@@ -90,10 +201,10 @@ export interface Sort<T = AnyRecord> {
 }
 
 /**
- * How coarsely a date is cut before grouping by it. Without a grain, grouping by a date
- * yields one bucket per row.
+ * How coarsely a date is cut before grouping by it, and the calendar unit a date snaps to the
+ * start of. Without a grain, grouping by a date yields one bucket per row.
  */
-export const GRAINS = ["year", "month", "week", "day"] as const;
+export const GRAINS = ["day", "week", "month", "quarter", "year"] as const;
 
 export type Grain = (typeof GRAINS)[number];
 

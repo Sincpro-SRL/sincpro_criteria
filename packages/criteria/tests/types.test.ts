@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { criteria, measure, merge, readFilter, where } from "@sincpro/criteria";
+import { criteria, dynamic, measure, merge, readFilter, where } from "@sincpro/criteria";
 
 import type { Dataset } from "./fixtures";
 
@@ -86,5 +86,53 @@ describe("typing is opt-in", () => {
       .merge(criteria<Dataset>().limit(10));
     const back: typeof merged.value.order = merged.value.order;
     assert.equal(back, undefined);
+  });
+});
+
+describe("a value that is read when the filter runs is typed too", () => {
+  it("accepts the names the engine declares", () => {
+    const q = criteria<Dataset>().where(
+      ["registered_at", "<", dynamic.today()],
+      ["registered_at", ">=", dynamic.today({ minus: { days: 30 }, startOf: "month" })],
+      ["registered_at", "between", dynamic.period("this_month")],
+      [
+        "registered_at",
+        "between",
+        dynamic.period({ unit: "week", last: 2, includeCurrent: true }),
+      ],
+    );
+    assert.ok(q.value.where);
+  });
+
+  it("refuses a period that is not one the engine has", () => {
+    assert.throws(() => {
+      // @ts-expect-error 'this_mont' is not a PeriodName
+      dynamic.period("this_mont");
+    }, "and at run time it is refused as well");
+  });
+
+  it("refuses a unit that is not one a span counts in", () => {
+    // @ts-expect-error 'day' is not a Unit: a span counts in days
+    dynamic.today({ minus: { day: 3 } });
+    assert.ok(true);
+  });
+
+  it("refuses a snap to a unit that is not a granularity", () => {
+    // @ts-expect-error 'fortnight' is not a Grain
+    dynamic.today({ startOf: "fortnight" });
+    assert.ok(true);
+  });
+
+  it("refuses a window with both a last and a next", () => {
+    // @ts-expect-error a window counts back or forward, not both
+    dynamic.period({ unit: "day", last: 3, next: 3 });
+    assert.ok(true);
+  });
+
+  it("checks the field a column is compared with, when there is a record to check it against", () => {
+    dynamic.field<Dataset>("row_count");
+    // @ts-expect-error 'gone' is not a field of Dataset
+    dynamic.field<Dataset>("gone");
+    assert.ok(true);
   });
 });

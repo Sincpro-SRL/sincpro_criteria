@@ -80,8 +80,55 @@ Text is searched two ways, both case-insensitive: `like` contains the value anyw
 `Descuento 50% off` and nothing that merely starts with `50`.
 
 **The triple never travels.** It is read into `{field, operator, value}` before it leaves, so
-the wire, a saved reading and `model_meta_data` all keep saying the same thing. `q.value` is
+the wire, a saved reading and `entity_meta_data` all keep saying the same thing. `q.value` is
 that plain object; it goes in a URL, a POST body or a queue message unchanged.
+
+### A value that is read when the filter runs
+
+Some questions are not about a fixed value: «due before today», «mine», «the last 30 days». A
+condition's value can be a **dynamic value**, stored as itself and read by the **server** when the
+filter runs — so a saved reading that says `today` means the day it is opened, and a client can
+never say it is another user.
+
+```ts
+import { criteria, dynamic } from "@sincpro/criteria";
+
+criteria<Invoice>().where(
+  ["due", "<", dynamic.today()],
+  ["owner_id", "=", dynamic.context("user_id")],
+  ["posted_at", ">=", dynamic.today({ minus: { days: 30 }, startOf: "month" })],
+  ["closed_at", "between", dynamic.period("this_month")],
+  ["closed_at", "between", dynamic.period({ unit: "day", last: 30 })],
+  ["total", ">", dynamic.field<Invoice>("credit_limit")],
+);
+```
+
+`dynamic.*` computes nothing: each returns the object that travels — `{"$": "today", "plus":
+{"days": -30}}` — and the server resolves it with its own clock, its own timezone and its own
+context. `minus` and `startOf` are only a way of writing: the wire has the one signed `plus` and
+`start_of`. A name the engine does not have (`"this_mont"`, a unit `day` where a span counts in
+`days`) is a compile error.
+
+| `dynamic.`     | Reads                                                                              |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `today()`      | the current date, in the timezone of the server's context (UTC without one)        |
+| `now()`        | the current instant, in UTC                                                        |
+| `context(key)` | a key of the SERVER's own context — the user, the tenant, a date it holds          |
+| `param(name)`  | a value the caller supplied for this call (`name` may be a path with dots)         |
+| `period(…)`    | a range `[start, end)`: a name (`this_month`) or `{unit, last \| next}`; `between` |
+| `field(name)`  | another field of the same row: a column against a column                           |
+
+Dates move with `plus` and then snap with `start_of` (`day`, `week`, `month`, `quarter`, `year`):
+a month end clamps (31 January plus a month is 28 February), a day across a clock change is still
+a day, and everything is UTC except where a calendar boundary falls. A period is closed at its
+start and open at its end, and `last`/`next` leave the current unit out unless `includeCurrent`.
+
+Rows in hand are narrowed the same way: `filtered(rows, filter, meta, { now })` reads each dynamic
+value once, with the instant it is given — and `resolve(filter, { now, timeZone, context })` is
+the step on its own, for what a form hint or a test needs. What a client resolves stays on the
+client. `meta.resolvers` lists what the server reads, so a filter builder offers «Today» and
+«This month» from what the backend says. What every value reads to is held to
+`tests/criteria-resolution.json`, written by hand in the framework, so both engines agree.
 
 ### The law for merging two of them
 
@@ -124,7 +171,7 @@ never widen past it, because `merge`'s law for `where` is always AND.
 
 ### What the model says about itself
 
-Every answer carries `model_meta_data` unless the criteria turned it off. A filter form, a
+Every answer carries `entity_meta_data` unless the criteria turned it off. A filter form, a
 column menu and a search box are built from it, so a client can never ask for a field it was
 not shown:
 

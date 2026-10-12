@@ -7,5 +7,6 @@ export * from "@sincpro/criteria/engine/group";
 export * from "@sincpro/criteria/engine/measure";
 export * from "@sincpro/criteria/engine/paginate";
 export * from "@sincpro/criteria/engine/pivot";
+export * from "@sincpro/criteria/engine/resolve";
 export * from "@sincpro/criteria/engine/sort";
 export * from "@sincpro/criteria/engine/temporal";
