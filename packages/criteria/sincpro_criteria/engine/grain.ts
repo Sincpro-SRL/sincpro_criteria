@@ -10,6 +10,8 @@ export function cutTo(value: unknown, grain: Grain): unknown {
       return String(at.getUTCFullYear());
     case "month":
       return `${at.getUTCFullYear()}-${pad(at.getUTCMonth() + 1)}`;
+    case "quarter":
+      return `${at.getUTCFullYear()}-Q${Math.floor(at.getUTCMonth() / 3) + 1}`;
     case "week": {
       const [year, week] = isoWeek(at);
       return `${year}-W${pad(week)}`;
@@ -53,6 +55,8 @@ function startOf(at: Date, grain: Grain): Date {
       return new Date(Date.UTC(year, 0, 1));
     case "month":
       return new Date(Date.UTC(year, at.getUTCMonth(), 1));
+    case "quarter":
+      return new Date(Date.UTC(year, Math.floor(at.getUTCMonth() / 3) * 3, 1));
     case "week": {
       const day = new Date(Date.UTC(year, at.getUTCMonth(), at.getUTCDate()));
       // ISO weeks start on Monday, and `getUTCDay()` calls Sunday 0.
@@ -73,6 +77,9 @@ function next(from: Date, grain: Grain): Date {
       return at;
     case "month":
       at.setUTCMonth(at.getUTCMonth() + 1);
+      return at;
+    case "quarter":
+      at.setUTCMonth(at.getUTCMonth() + 3);
       return at;
     case "week":
       at.setUTCDate(at.getUTCDate() + 7);

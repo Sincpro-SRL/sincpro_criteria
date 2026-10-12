@@ -1,9 +1,5 @@
-import type {
-  AnyRecord,
-  Condition,
-  Expression,
-  Value,
-} from "@sincpro/criteria/criteria/grammar";
+import { readValue } from "@sincpro/criteria/criteria/dynamic";
+import type { AnyRecord, Condition, Expression } from "@sincpro/criteria/criteria/grammar";
 import { InvalidCriteria, isOperator } from "@sincpro/criteria/criteria/grammar";
 
 /** Whether this node is a condition rather than a group. */
@@ -70,7 +66,7 @@ export function readExpression(value: unknown): Expression {
         `a condition is written [field, operator, value]; got ${JSON.stringify(value)}`,
       );
     }
-    return { field, operator, value: written as Value };
+    return { field, operator, value: readValue(written) };
   }
 
   const written = value as Record<string, unknown>;
@@ -94,7 +90,7 @@ export function readExpression(value: unknown): Expression {
         `the condition on '${written.field}' carries no 'value'; a condition without a value is not a condition`,
       );
     }
-    return { field: written.field, operator, value: written.value as Value };
+    return { field: written.field, operator, value: readValue(written.value) };
   }
 
   throw new InvalidCriteria(

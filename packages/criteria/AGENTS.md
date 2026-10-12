@@ -3,7 +3,7 @@
 This is `packages/criteria` in a monorepo — see the repo root's `docs/DESIGN.md` for how the
 other packages (`criteria-react`, …) relate to this one. `@sincpro/criteria` is the read
 grammar of the Sincpro engine, in TypeScript, and the machinery that drives it. It mirrors
-`sincpro_framework/ddd/` — `criteria.py`, `pagination.py`, `model_meta.py`, `evaluate.py` and
+`sincpro_framework/ddd/` — `criteria.py`, `pagination.py`, `entity_meta.py`, `evaluate.py` and
 `memory_repository.py`. Nothing here talks to a network, renders anything, or depends on a
 package.
 
@@ -92,7 +92,7 @@ criteria<Dataset>()
   .specification({ name: {}, runs: { pagination: { limit: 20 } } });
 ```
 
-- Read the operators a field takes from `model_meta_data`, never from a list kept by hand.
+- Read the operators a field takes from `entity_meta_data`, never from a list kept by hand.
 - The root export is the door; the engine that answers a criteria over rows in hand is
   `@sincpro/criteria/engine`, and nothing from it belongs in the root.
 - Never order by a field whose `sortable` is false.

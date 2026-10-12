@@ -35,7 +35,7 @@ The reference for the whole grammar — merge, saved readings, what gets dropped
 
 The examples below are the reads an accounting service actually publishes. `Invoice` and
 `InvoiceLine` are two models, so they are two queries. Field names are the ones
-`model_meta_data` publishes. A relation is expanded in `specification`; the filter names the
+`entity_meta_data` publishes. A relation is expanded in `specification`; the filter names the
 key (`partner_id`), never the relation (`partner`).
 
 ```ts
@@ -338,7 +338,7 @@ A function is called on every request, so a value that changes (the current tena
 current.
 
 The answer is the same paginated DTO a REST route returns for that command. `pageFrom` reads
-`rows`, `cursor`, `count`, `model_meta_data` and `dropped` out of it.
+`rows`, `cursor`, `count`, `entity_meta_data` and `dropped` out of it.
 
 The next page is the cursor the previous page handed back. A reading holds that for you:
 
@@ -458,13 +458,13 @@ the service you call
   └── sincpro_framework          defines Criteria, validates it, answers the page
 ```
 
-| This repository                          | The framework                                                    |
-| ---------------------------------------- | ---------------------------------------------------------------- |
-| `criteria()`, `where`, `plain`, `merge`  | `ddd/criteria` — the object and the merge law                    |
-| `@sincpro/criteria/engine`               | `ddd/criteria/evaluate.py` — the in-memory specification         |
-| `pageFrom`, `model_meta_data`, `dropped` | the paginated answer                                             |
-| `@sincpro/criteria/rpc`                  | `POST /rpc`, method `{namespace}.{operation}`, `params.criteria` |
-| `@sincpro/criteria/rest`                 | the REST entrypoint's `criteria` query parameter                 |
+| This repository                           | The framework                                                    |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| `criteria()`, `where`, `plain`, `merge`   | `ddd/criteria` — the object and the merge law                    |
+| `@sincpro/criteria/engine`                | `ddd/criteria/evaluate.py` — the in-memory specification         |
+| `pageFrom`, `entity_meta_data`, `dropped` | the paginated answer                                             |
+| `@sincpro/criteria/rpc`                   | `POST /rpc`, method `{namespace}.{operation}`, `params.criteria` |
+| `@sincpro/criteria/rest`                  | the REST entrypoint's `criteria` query parameter                 |
 
 The grammar is defined in the framework. This repo mirrors it, and a parity suite runs the
 same cases through both in-memory engines. The language as the engine writes it is

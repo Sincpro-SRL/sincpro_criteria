@@ -10,6 +10,7 @@ import {
   mintCursor,
   orderingFor,
   pivotOf,
+  rangeOf,
   readCursor,
   sortRows,
 } from "@sincpro/criteria/engine";
@@ -321,6 +322,19 @@ describe("the grain", () => {
     assert.equal(cutTo(at, "month"), "2026-03");
     assert.equal(cutTo(at, "day"), "2026-03-14");
     assert.equal(cutTo(at, "week"), "2026-W11");
+    assert.equal(cutTo(at, "quarter"), "2026-Q1");
+    assert.equal(cutTo("2026-11-02T00:00:00Z", "quarter"), "2026-Q4");
+  });
+
+  it("opens a quarter on the range of its three months, the end left out", () => {
+    assert.deepEqual(rangeOf("2026-08-20T00:00:00Z", "quarter"), {
+      from: "2026-07-01T00:00:00.000Z",
+      to: "2026-10-01T00:00:00.000Z",
+    });
+    assert.deepEqual(rangeOf("2026-11-20T00:00:00Z", "quarter"), {
+      from: "2026-10-01T00:00:00.000Z",
+      to: "2027-01-01T00:00:00.000Z",
+    });
   });
 
   it("leaves alone what is not a date", () => {
