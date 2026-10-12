@@ -6,13 +6,15 @@ import type {
   Level,
   Value,
 } from "@sincpro/criteria/criteria/grammar";
+import { InvalidCriteria } from "@sincpro/criteria/criteria/grammar";
 import { merge, pageAsked } from "@sincpro/criteria/criteria/merge";
+import { axisValues } from "@sincpro/criteria/engine/axes";
 import { compareValues, missing } from "@sincpro/criteria/engine/compare";
 import { mintCursor } from "@sincpro/criteria/engine/cursor";
 import { matches } from "@sincpro/criteria/engine/evaluate";
 import type { Range } from "@sincpro/criteria/engine/grain";
-import { cutTo, rangeOf } from "@sincpro/criteria/engine/grain";
-import { measured } from "@sincpro/criteria/engine/measure";
+import { cutTo, partOf, rangeOf } from "@sincpro/criteria/engine/grain";
+import { emptyMeasure, measured } from "@sincpro/criteria/engine/measure";
 import { orderingFor, sortRows } from "@sincpro/criteria/engine/sort";
 import type { Meta } from "@sincpro/criteria/meta/meta";
 import type { Bucket } from "@sincpro/criteria/page/page";
@@ -33,7 +35,33 @@ export function bucketsOf<T = AnyRecord>(
 ): Bucket<T>[] {
   const grouping = criteria.grouping;
   if (grouping?.group_by === undefined || grouping.group_by.length === 0) return [];
+  refuseWhatCannotBeAnswered(criteria, grouping);
   return tree(rows, grouping, criteria, grouping.group_by, meta);
+}
+
+/**
+ * What a grouping cannot answer, refused naming why: a PART has no filter that opens it, so a
+ * page of ids per group would list rows that are not the group's; and a FILLED level lists groups
+ * with no rows, which a filter or a page over the groups cannot place.
+ */
+function refuseWhatCannotBeAnswered<T>(criteria: Criteria<T>, grouping: Grouping<T>): void {
+  for (const level of grouping.group_by ?? []) {
+    if (level.part != null && pageAsked(criteria.pagination)) {
+      throw new InvalidCriteria(
+        `'${level.field}' is grouped by a part of the date (${level.part}); a group of a part ` +
+          `has no rows to page, because «every ${level.part}» is not a condition on the date`,
+      );
+    }
+    if (
+      level.fill &&
+      (grouping.where_measures !== undefined || grouping.pagination !== undefined)
+    ) {
+      throw new InvalidCriteria(
+        `'${level.field}' is filled, and a filter or a page over the groups cannot place the ` +
+          "groups that have no rows: drop `fill`, or the filter and the page",
+      );
+    }
+  }
 }
 
 function tree<T>(
@@ -49,7 +77,11 @@ function tree<T>(
   const held = new Map<string, { value: unknown; range: Range | undefined; rows: T[] }>();
   for (const row of rows) {
     const raw = (row as AnyRecord)[level.field];
-    const value = level.grain ? cutTo(raw, level.grain) : raw;
+    const value = level.part
+      ? partOf(raw, level.part)
+      : level.grain
+        ? cutTo(raw, level.grain)
+        : raw;
     const key = keyOf(value);
     const bucket = held.get(key);
     if (bucket === undefined) {
@@ -66,9 +98,26 @@ function tree<T>(
     }
   }
 
+  if (level.fill) {
+    const field = meta.fields[level.field];
+    if (field === undefined) throw new InvalidCriteria(`'${level.field}': no such field`);
+    for (const value of axisValues(level, field, criteria.where)) {
+      const key = keyOf(value);
+      if (!held.has(key)) held.set(key, { value, range: undefined, rows: [] });
+    }
+  }
+
   const buckets: Bucket<T>[] = [];
   for (const { value, range, rows: mine } of held.values()) {
-    const numbers = measured(mine, grouping.measures);
+    const numbers =
+      mine.length > 0
+        ? measured(mine, grouping.measures)
+        : Object.fromEntries(
+            Object.entries(grouping.measures ?? {}).map(([name, one]) => [
+              name,
+              emptyMeasure(one),
+            ]),
+          );
 
     if (grouping.where_measures !== undefined) {
       // `having` reads the numbers the group folded, plus `count` — never the rows' own
@@ -79,8 +128,12 @@ function tree<T>(
 
     // The reading that opens this bucket. The grouping is cleared: opening a bucket lists its
     // rows, and a criteria that still asked to group would count them again instead.
+    // A part cannot be opened: «every March» is not a condition on the date, so the bucket keeps
+    // its parent's criteria and says so instead of pointing at rows that are not its own.
     const opens: Criteria<T> = {
-      ...merge<T>(criteria, { where: conditionFor(level, value, range) }),
+      ...(level.part
+        ? criteria
+        : merge<T>(criteria, { where: conditionFor(level, value, range) })),
       grouping: {},
     };
     const { ids, cursor } = pageOfIds(mine, criteria, meta);
@@ -94,6 +147,7 @@ function tree<T>(
       ids,
       cursor,
       groups: tree(mine, grouping, opens, rest, meta),
+      ...(level.part ? { openable: false } : {}),
     });
   }
 
@@ -177,6 +231,8 @@ function byValue(mine: unknown, theirs: unknown): number {
   if (missing(mine) && missing(theirs)) return 0;
   if (missing(mine)) return 1;
   if (missing(theirs)) return -1;
+  // Numbers are numbers, as in SQL: the group 10 follows 9.
+  if (typeof mine === "number" && typeof theirs === "number") return mine - theirs;
   return compareValues(asText(mine), asText(theirs));
 }
 

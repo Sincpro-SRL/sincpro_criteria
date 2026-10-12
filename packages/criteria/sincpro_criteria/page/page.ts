@@ -58,6 +58,13 @@ export interface Bucket<T = AnyRecord> {
 
   /** The level below, when the grouping named one. Empty on the deepest level. */
   groups?: Bucket<T>[];
+
+  /**
+   * Whether `criteria` selects this group's rows. `false` for a group of a date PART («every
+   * March»), which no filter on the date can say: its `criteria` is then its parent's.
+   * Absent is open.
+   */
+  openable?: boolean;
 }
 
 /** One cell of a pivot. A margin is a cell with one axis empty; both empty is the grand total. */

@@ -57,9 +57,22 @@ export const measure = {
     return { function: "percentile", field, argument: fraction };
   },
 
-  /** The middle value. The same as {@link measure.percentile} at `0.5`, said shorter. */
+  /**
+   * The middle value: the 0.5 percentile, which takes no argument. Not every engine computes it
+   * — SQLite has no percentile, and the repository refuses it there by name.
+   */
   median<T = AnyRecord>(field: NoInfer<Fields<T>>): Measure<T> {
-    return { function: "percentile", field, argument: 0.5 };
+    return { function: "median", field };
+  },
+
+  /** Whether every row of the group holds `true`. A boolean field only. */
+  boolAnd<T = AnyRecord>(field: NoInfer<Fields<T>>): Measure<T> {
+    return { function: "bool_and", field };
+  },
+
+  /** Whether any row of the group holds `true`. A boolean field only. */
+  boolOr<T = AnyRecord>(field: NoInfer<Fields<T>>): Measure<T> {
+    return { function: "bool_or", field };
   },
 
   /**
@@ -118,7 +131,7 @@ export function readMeasure<T = AnyRecord>(written: unknown): Measure<T> {
   return { function: one.function, field: one.field as Fields<T> };
 }
 
-/** Whether a string is one of the five functions the engine computes. */
+/** Whether a string is one of the functions the engine computes. */
 export function isMeasureFunction(written: string): written is MeasureFunction {
   return (MEASURE_FUNCTIONS as readonly string[]).includes(written);
 }

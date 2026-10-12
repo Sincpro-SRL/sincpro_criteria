@@ -11,7 +11,13 @@ import type {
   Pagination,
   Sort,
 } from "@sincpro/criteria/criteria/grammar";
-import { GRAINS, InvalidCriteria, isGrain } from "@sincpro/criteria/criteria/grammar";
+import {
+  GRAINS,
+  InvalidCriteria,
+  isGrain,
+  isPart,
+  PARTS,
+} from "@sincpro/criteria/criteria/grammar";
 import { readMeasure } from "@sincpro/criteria/criteria/measure";
 import { parseOrder } from "@sincpro/criteria/criteria/order";
 
@@ -182,19 +188,38 @@ function readGrouping(value: unknown): Grouping {
 function readLevels(value: unknown): Level[] {
   if (!Array.isArray(value)) throw new InvalidCriteria("'by' is a list of levels");
   return value.map((one) => {
-    const level = one as { field?: unknown; grain?: unknown } | null;
+    const level = one as {
+      field?: unknown;
+      grain?: unknown;
+      part?: unknown;
+      fill?: unknown;
+    } | null;
     if (level === null || typeof level !== "object" || typeof level.field !== "string") {
       throw new InvalidCriteria(
         `a level is written {field, grain}; got ${JSON.stringify(one)}`,
       );
     }
-    if (level.grain == null) return { field: level.field };
+    const filled = level.fill === true ? { fill: true } : {};
+    if (level.grain != null && level.part != null) {
+      throw new InvalidCriteria(
+        "a level takes a grain (a range of time) or a part (a number), not both",
+      );
+    }
+    if (level.part != null) {
+      if (typeof level.part !== "string" || !isPart(level.part)) {
+        throw new InvalidCriteria(
+          `'${String(level.part)}' is not a part of a date; use one of ${PARTS.join(", ")}`,
+        );
+      }
+      return { field: level.field, part: level.part, ...filled };
+    }
+    if (level.grain == null) return { field: level.field, ...filled };
     if (typeof level.grain !== "string" || !isGrain(level.grain)) {
       throw new InvalidCriteria(
         `'${String(level.grain)}' is not a grain; use one of ${GRAINS.join(", ")}`,
       );
     }
-    return { field: level.field, grain: level.grain };
+    return { field: level.field, grain: level.grain, ...filled };
   });
 }
 

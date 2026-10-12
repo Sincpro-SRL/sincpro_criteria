@@ -332,12 +332,13 @@ the rows made:
 The measures are a closed list, because the name reaches SQL: anything outside it is refused
 before a statement exists.
 
-|                                                             |                                                                                                                                                                                              |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `measure.sum` `avg` `min` `max`                             | over the values that are there; an empty one is left out, not counted as zero                                                                                                                |
-| `measure.count(field)`                                      | how many rows hold a value in it — every bucket answers `count` for its rows without being asked                                                                                             |
-| `measure.countDistinct(field)`                              | how many DIFFERENT values — "how many customers", not how many rows                                                                                                                          |
-| `measure.percentile(field, 0.95)` · `measure.median(field)` | the value at a fraction of the sorted ones, interpolating. **Not every engine computes it**: SQLite has none, and the repository refuses it by name instead of letting it reach the database |
+|                                                             |                                                                                                                                                                                                                                             |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `measure.sum` `avg` `min` `max`                             | over the values that are there; an empty one is left out, not counted as zero                                                                                                                                                               |
+| `measure.count(field)`                                      | how many rows hold a value in it — every bucket answers `count` for its rows without being asked                                                                                                                                            |
+| `measure.countDistinct(field)`                              | how many DIFFERENT values — "how many customers", not how many rows                                                                                                                                                                         |
+| `measure.percentile(field, 0.95)` · `measure.median(field)` | the value at a fraction of the sorted ones, interpolating; a median is the 0.5 one and takes no argument. **Not every engine computes it**: SQLite has none, and the repository refuses it by name instead of letting it reach the database |
+| `measure.boolAnd(field)` · `measure.boolOr(field)`          | whether every / any row of the group holds `true`; a boolean field only                                                                                                                                                                     |
 
 What is open is where the rows come from, what each model publishes it can be asked, and
 everything worked out from the answer — see below.
@@ -364,6 +365,35 @@ criteria, every bucket also carries the `ids` and `cursor` of its own first page
 
 `pivot` crosses two axes and folds the cells, with margins folded from the rows rather than
 added up from the cells: an average of averages is not an average.
+
+### The part of a date, and the groups with no rows
+
+A grain CUTS a date into ranges (`["registered_at", "month"]` is `2026-03`); a **part** extracts a
+number from it, so every March groups together whatever the year:
+
+```ts
+criteria<Dataset>().groupBy({ field: "registered_at", part: "month" }); // 1 … 12
+```
+
+`part` is `year`, `quarter`, `month`, `iso_week`, `day_of_week` (Monday is 1), `day_of_month` or
+`hour`, always in UTC. A level takes a grain or a part, not both. **A group of a part cannot be
+opened**: «every March» is not a condition on the date, so its bucket says `openable: false` and
+carries its parent's `criteria`, and asking for a page of ids per group over one is refused.
+
+A group that happens to be empty is absent from a grouping, and a chart with a hole in its axis
+lies. `fill: true` lists every value the level can take, with a count of 0:
+
+```ts
+criteria<Bill>().groupBy({ field: "state", fill: true }); // every choice of the enum
+criteria<Bill>().groupBy({ field: "registered_at", part: "month", fill: true }); // 1 … 12
+```
+
+It fills the choices of an enum, both values of a boolean, every number of a part, and the grains
+of a date range **that the filter bounds at both ends** — an axis with no ends has no «every».
+An empty group's `count` is 0, its counts are 0 and every other fold is `null`. It cannot be
+combined with `whereMeasures` or a page of groups. `meta.fields[x].groupable` and `.aggregates`
+say what a field takes, and `computed` marks a field the server computes — read-only, and grouped
+and filtered like a column.
 
 ### The two orders and the two pages
 

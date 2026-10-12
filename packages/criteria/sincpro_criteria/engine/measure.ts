@@ -25,6 +25,9 @@ const MEASURES: Record<MeasureFunction, (values: unknown[]) => unknown> = {
   count: (values) => values.length,
   count_distinct: (values) => new Set(values.map((one) => JSON.stringify(one))).size,
   percentile: (values) => percentileOf(values, 0.5),
+  median: (values) => percentileOf(values, 0.5),
+  bool_and: (values) => (values.length === 0 ? null : values.every((one) => one === true)),
+  bool_or: (values) => (values.length === 0 ? null : values.some((one) => one === true)),
   sum: (values) => values.reduce<number>((total, one) => total + Number(one), 0),
   min: (values) => (values.length === 0 ? null : values.reduce(pick(-1))),
   max: (values) => (values.length === 0 ? null : values.reduce(pick(1))),
@@ -60,4 +63,16 @@ export function measured<T = AnyRecord>(
 function pick(side: number) {
   return (chosen: unknown, one: unknown) =>
     compareValues(one, chosen) === side ? one : chosen;
+}
+
+/**
+ * What a function folds over no rows — a group that was listed because the level is filled, and
+ * has none: a count is 0 and anything else has no value, because 0 would be a value.
+ *
+ * @example
+ * emptyMeasure(measure.count("id")); // 0
+ * emptyMeasure(measure.sum("total")); // null
+ */
+export function emptyMeasure<T = AnyRecord>(one: Measure<T>): unknown {
+  return one.function === "count" || one.function === "count_distinct" ? 0 : null;
 }

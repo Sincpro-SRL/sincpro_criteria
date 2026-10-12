@@ -1,4 +1,4 @@
-import type { Grain } from "@sincpro/criteria/criteria/grammar";
+import type { Grain, Part } from "@sincpro/criteria/criteria/grammar";
 import { readInstant } from "@sincpro/criteria/engine/temporal";
 
 /** The label of the bucket a date falls into, or the value untouched when it is not a date. */
@@ -18,6 +18,34 @@ export function cutTo(value: unknown, grain: Grain): unknown {
     }
     case "day":
       return at.toISOString().slice(0, 10);
+  }
+}
+
+/**
+ * The number a date part is: what the engine extracts from the column. UTC, like the grains.
+ *
+ * @example
+ * partOf("2026-03-14T15:09:26Z", "month"); // 3
+ * partOf("2026-03-14", "day_of_week"); // 6 — a Saturday; Monday is 1
+ */
+export function partOf(value: unknown, part: Part): number | null {
+  const at = asDate(value);
+  if (at === undefined) return null;
+  switch (part) {
+    case "year":
+      return at.getUTCFullYear();
+    case "quarter":
+      return Math.floor(at.getUTCMonth() / 3) + 1;
+    case "month":
+      return at.getUTCMonth() + 1;
+    case "iso_week":
+      return isoWeek(at)[1];
+    case "day_of_week":
+      return ((at.getUTCDay() + 6) % 7) + 1;
+    case "day_of_month":
+      return at.getUTCDate();
+    case "hour":
+      return at.getUTCHours();
   }
 }
 

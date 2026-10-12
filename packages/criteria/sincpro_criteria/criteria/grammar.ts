@@ -208,15 +208,53 @@ export const GRAINS = ["day", "week", "month", "quarter", "year"] as const;
 
 export type Grain = (typeof GRAINS)[number];
 
+/**
+ * A number extracted from a date: the month of the year, whatever the year.
+ *
+ * A grain CUTS (a bucket is a range of time, `2026-03`) and a part EXTRACTS (a bucket is a number
+ * many dates share, `3`), so a level takes one or the other. Weekdays count from Monday as 1.
+ */
+export const PARTS = [
+  "year",
+  "quarter",
+  "month",
+  "iso_week",
+  "day_of_week",
+  "day_of_month",
+  "hour",
+] as const;
+
+export type Part = (typeof PARTS)[number];
+
+/** Whether a string is one of the parts the engine extracts. See {@link isOperator}. */
+export function isPart(written: string): written is Part {
+  return (PARTS as readonly string[]).includes(written);
+}
+
 /** Whether a string is one of the grains the engine can cut. See {@link isOperator}. */
 export function isGrain(written: string): written is Grain {
   return (GRAINS as readonly string[]).includes(written);
 }
 
-/** One level of grouping: the field it splits by, and how finely. */
+/** One level of grouping: the field it splits by, and how. */
 export interface Level<T = AnyRecord> {
   field: Fields<T>;
+
+  /** Cuts a date into ranges of time (`2026-03`). */
   grain?: Grain | null;
+
+  /**
+   * Extracts a number from a date (`3`). A group of a part cannot be opened as a filter: its
+   * {@link Bucket.openable} is `false`.
+   */
+  part?: Part | null;
+
+  /**
+   * Lists every value the level can take, with a count of 0 for the ones with no rows: all the
+   * choices of an enum, both values of a boolean, every number a part can be, every grain of a
+   * date range the filter bounds. Not with a filter or a page over the groups.
+   */
+  fill?: boolean;
 }
 
 /**
@@ -233,6 +271,9 @@ export const MEASURE_FUNCTIONS = [
   "count",
   "count_distinct",
   "percentile",
+  "median",
+  "bool_and",
+  "bool_or",
 ] as const;
 
 export type MeasureFunction = (typeof MEASURE_FUNCTIONS)[number];
