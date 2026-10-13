@@ -132,6 +132,15 @@ export interface FieldMeta {
   computed?: boolean;
 
   /**
+   * The module that adds this field to the entity, by class name (`"MoveDelivery"`); absent for a
+   * field the entity has itself. A record that has no such extension holds nothing there, so the
+   * server sends it nullable and not sortable: a screen can group the fields by owner, and show
+   * the ones of a module the record lacks as empty. Nothing about filtering changes: it is
+   * filtered like any other field.
+   */
+  owner?: string | null;
+
+  /**
    * A decimal: its values travel as text so no digit is lost (`"10.50"`), and they compare as
    * numbers — `matches`, a sort and a cursor read them that way when handed this `meta`.
    */
