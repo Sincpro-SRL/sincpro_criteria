@@ -335,7 +335,7 @@ Added 2026-10-12. A condition's value can be `{"$": "today" | "now" | "period" |
 Added 2026-10-12. `Level` takes `part` (`PARTS`: `year quarter month iso_week day_of_week
 day_of_month hour`) or `grain`, and `fill`; `Bucket.openable` is `false` for a part;
 `MEASURE_FUNCTIONS` gains `median`, `bool_and`, `bool_or` (`measure.median` now travels as
-`median`, not as a 0.5 `percentile`); `FieldMeta` carries `groupable`, `aggregates`, `computed`.
+`median`, not as a 0.5 `percentile`); `FieldMeta` carries `groupable`, `aggregates`, `computed` and `owner` (the module that adds the field to the entity; such a field is nullable and not sortable, and filters like any other).
 `engine/axes.ts` lists the values a `fill` completes and `engine/group.ts` answers parts, fills and
 the new folds over rows in hand, numbers ordered as numbers. `tests/analytics.test.ts` holds the same
 cases the framework holds over a memory store and SQL.

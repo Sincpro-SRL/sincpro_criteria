@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import type { Meta } from "@sincpro/criteria";
 import {
   fieldsThatFilter,
   fieldsThatGroup,
@@ -86,5 +87,51 @@ describe("a definition that has not arrived yet", () => {
       assert.equal(nameOf(meta), ""); // no aggregate name to fall back to either
       assert.equal(searchOver(meta, "labs"), undefined);
     }
+  });
+});
+
+describe("a field a module adds to the entity", () => {
+  const moveMeta: Meta = {
+    aggregate: "Move",
+    identity: "id",
+    default_order: "-id",
+    fields: {
+      id: { type: "text", nullable: false, sortable: true, ops: ["=", "in"], kind: "scalar" },
+      number: {
+        type: "text",
+        nullable: false,
+        sortable: true,
+        ops: ["=", "like"],
+        kind: "scalar",
+      },
+      route: {
+        type: "text",
+        nullable: true,
+        sortable: false,
+        ops: ["=", "like", "is null"],
+        kind: "scalar",
+        owner: "MoveDelivery",
+      },
+    },
+  };
+
+  it("keeps whose it is", () => {
+    assert.equal(moveMeta.fields.route!.owner, "MoveDelivery");
+    assert.equal(moveMeta.fields.number!.owner, undefined);
+  });
+
+  it("is offered to filter by, like any other field", () => {
+    assert.ok(fieldsThatFilter(moveMeta).includes("route"));
+    assert.deepEqual(operatorsFor(moveMeta, "route"), ["=", "like", "is null"]);
+  });
+
+  it("is not offered to order by, because a record may lack the module", () => {
+    assert.ok(!fieldsThatSort(moveMeta).includes("route"));
+    assert.ok(fieldsThatSort(moveMeta).includes("number"));
+  });
+
+  it("is kept when a definition is narrowed to what a specification names", () => {
+    const narrowed = JSON.parse(JSON.stringify(moveMeta)) as Meta;
+    assert.equal(narrowed.fields.route!.owner, "MoveDelivery");
   });
 });
