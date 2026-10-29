@@ -180,8 +180,15 @@ fieldsThatFilter(meta); // what a filter may name
 fieldsThatSort(meta); // never a nullable column: a page ordered by one loses rows
 operatorsFor(meta, "row_count"); // ["=", "!=", "<", "<=", ">", ">=", "between", "in", "not in"]
 labelOf(meta, "row_count", "es"); // "Filas"
-searchOver(meta, typed); // `like` over every text field the model says takes it
+choicesOf(meta, "priority", "es"); // [{value: "high", label: "Alta"}, …] — a select over an enum
+choiceLabelOf(meta, "priority", "high", "es"); // "Alta"; the value itself when the enum named it nothing
+searchOver(meta, typed); // the entity's own search template, else `like` over every text field
+matching(meta, typed); // what a many2one select sends: the template, 8 references
 ```
+
+`meta.search` is the entity's `DEFAULT_LITERAL_SEARCH`: a criteria whose `where` holds
+`dynamic.param("text")` where the typed text goes. `searchOver` and `matching` fill it exactly
+as the engine's own `matching` does, so a select finds what the backend's select would.
 
 When the rows came from somewhere that says nothing about them, `describeRows(rows)` reads a
 definition off the rows themselves.
@@ -244,8 +251,11 @@ const datasets = resource<Dataset>(
 );
 ```
 
-A non-2xx answer throws `RestError` with the status and the body. There is no `pivot`: no
-endpoint anywhere follows a convention for one yet.
+A non-2xx answer throws `RestError` with the status, the body and `problem` — the engine's
+failure read into one shape (`kind`, `reason`, `next_step`, `retryable`, `retry_after`, and
+`errors` as JSON pointers), the same one `RpcError.problem` carries, so a screen handles a
+refusal once whichever wire it came over. `readProblem(body)` reads one from any body.
+There is no `pivot`: no endpoint anywhere follows a convention for one yet.
 
 `@sincpro/criteria/rpc` does the same over the framework's own JSON-RPC 2.0 entrypoint — every
 read `Query` there carries one field, `criteria`, so a method call is `{criteria: plain(...)}`

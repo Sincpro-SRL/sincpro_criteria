@@ -92,6 +92,8 @@ export type {
   Translated,
 } from "@sincpro/criteria/meta/meta";
 export {
+  choiceLabelOf,
+  choicesOf,
   FIELD_TYPES,
   fieldsThatFilter,
   fieldsThatGroup,
@@ -99,6 +101,8 @@ export {
   isFilterable,
   isRelational,
   labelOf,
+  matching,
+  MATCHING_LIMIT,
   nameOf,
   operatorsFor,
   RESOLVERS,
@@ -118,6 +122,13 @@ export type {
   PivotCell,
 } from "@sincpro/criteria/page/page";
 export { pageFrom, recordsOf } from "@sincpro/criteria/page/page";
+export type {
+  FailureKind,
+  FieldError,
+  NextStep,
+  Problem,
+} from "@sincpro/criteria/page/problem";
+export { FAILURE_KINDS, NEXT_STEPS, readProblem } from "@sincpro/criteria/page/problem";
 
 /* ── checking and printing ──────────────────────────────────────────────────────────── */
 export type { ExplainOptions } from "@sincpro/criteria/explain";

@@ -1,5 +1,17 @@
+import { isDynamic } from "@sincpro/criteria/criteria/dynamic";
+import {
+  isAll,
+  isCondition,
+  isNegate,
+  readExpression,
+} from "@sincpro/criteria/criteria/expression";
 import { any } from "@sincpro/criteria/criteria/filter";
-import type { AnyRecord, Expression, Operator } from "@sincpro/criteria/criteria/grammar";
+import type {
+  AnyRecord,
+  Criteria,
+  Expression,
+  Operator,
+} from "@sincpro/criteria/criteria/grammar";
 import { GRAINS, PERIODS, UNITS } from "@sincpro/criteria/criteria/grammar";
 
 /** The logical type of a field: the full vocabulary the engine publishes. */
@@ -110,12 +122,23 @@ export interface FieldMeta {
   type: FieldType;
   nullable: boolean;
 
-  /** The values an enum field may hold — what a select is built from. */
+  /**
+   * The values an enum field may hold, in the order the enum declares them — what a select is
+   * built from. {@link choicesOf} pairs each with its word.
+   */
   choices?: unknown[];
 
   /**
-   * The field's own name for a screen, `{default, ...languages}`, as the engine declares it
-   * on the field itself. Empty when the field declared none; {@link labelOf} reads it.
+   * What each of `choices` is called, `{default, ...languages}`, keyed by the value as text —
+   * JSON keys are always text, so `1` is under `"1"`. Only the values the enum named: one left
+   * out has no word of its own, and {@link choiceLabelOf} shows the value itself.
+   */
+  choice_labels?: Record<string, Record<string, string>>;
+
+  /**
+   * The field's own name for a screen, `{default, ...languages}`. A field that declared none is
+   * called what its enum calls itself, so a category named once is named the same everywhere;
+   * empty when neither said anything. {@link labelOf} reads it.
    */
   label?: Record<string, string>;
 
@@ -201,19 +224,6 @@ export interface FieldMeta {
   kind: FieldKind;
 }
 
-/** How a literal is compared with one field when a select searches: mirrors `MatchMode`. */
-export type MatchMode = "equal" | "prefix" | "contains";
-
-/**
- * One field a select's literal is compared with, and how: what the entity's `presentation`
- * declared (`Match.prefix(a.code)`). `prefix` is the `starts with` operator, `contains` is
- * `like`, `equal` is `=`.
- */
-export interface Match {
-  field: string;
-  mode: MatchMode;
-}
-
 /** What a caller is told about an aggregate: one map of fields, each saying which it is. */
 export interface Meta {
   aggregate: string;
@@ -233,8 +243,18 @@ export interface Meta {
    */
   display?: string;
 
-  /** How a select's literal finds a record, field by field, as the entity declared it. */
-  search?: Match[];
+  /**
+   * The field a single record is fetched by — the identity, unless the entity names a natural
+   * key (`number`, `code`). Empty for a value object.
+   */
+  get_id?: string;
+
+  /**
+   * How a typed text finds a record, as the entity declared it: a criteria as the engine writes
+   * it, whose `where` holds `dynamic.param("text")` where the text goes. `null` when the entity
+   * searches nothing. {@link searchOver} and {@link matching} fill it.
+   */
+  search?: Record<string, unknown> | null;
 
   /**
    * What a read of one record brings when it asks for the detail: a criteria as the engine
@@ -359,17 +379,82 @@ export function nameOf(meta: Meta | null | undefined, locale?: string): string {
 }
 
 /**
- * What a search box types into a filter: `like` over every text field the model says takes
- * it, OR'd together.
+ * The word a screen shows for one value of an enum field, in the language it is showing.
  *
- * The fields come from the definition and not from a list kept by hand, so a model that
- * grows a column is searchable by it the same day, and one that loses a column does not
- * start sending a condition nobody can answer. With no `meta` at all there is nothing to
- * search over yet, so this answers `undefined` — the same "no filter" a blank box already
- * answers — rather than throwing on a screen that is still waiting for its first page.
+ * Falls back to the `default` the engine sends, and to the value itself when the enum gave it
+ * no word — a badge that says `medium` is better than an empty one. The value is looked up as
+ * text, the way it travelled as a key.
+ *
+ * @example
+ * // meta.fields.priority.choice_labels = {high: {default: "High", es: "Alta"}}
+ * choiceLabelOf(meta, "priority", "high", "es"); // "Alta"
+ * choiceLabelOf(meta, "priority", "high", "fr"); // "High"   — no French, the default
+ * choiceLabelOf(meta, "priority", "medium", "es"); // "medium" — the enum named it nothing
+ */
+export function choiceLabelOf(
+  meta: Meta | null | undefined,
+  field: string,
+  value: unknown,
+  locale?: string,
+): string {
+  const key = String(value);
+  const labels = meta?.fields[field]?.choice_labels?.[key];
+  if (labels === undefined) return key;
+  return (locale ? labels[locale] : undefined) ?? labels.default ?? key;
+}
+
+/**
+ * The options of a select over an enum field: each value it may hold with its word, in the
+ * order the enum declares them. Empty for a field that is not an enum, or a definition that
+ * has not arrived.
+ *
+ * The value is kept as the engine sent it — a number stays a number — so the option chosen is
+ * what goes into the condition, untouched.
+ *
+ * @example
+ * // simple: a select of priorities, in Spanish
+ * choicesOf(meta, "priority", "es");
+ * // [{value: "high", label: "Alta"}, {value: "medium", label: "medium"}, {value: "low", label: "Baja"}]
+ *
+ * @example
+ * // medium: the options feed a filter, and a chip reads the condition back
+ * const options = choicesOf(meta, "priority", "es");
+ * const q = criteria<Ticket>().where(["priority", "in", options.slice(0, 2).map((o) => o.value)]);
+ * choiceLabelOf(meta, "priority", "high", "es"); // "Alta" — what the chip shows
+ */
+export function choicesOf(
+  meta: Meta | null | undefined,
+  field: string,
+  locale?: string,
+): { value: unknown; label: string }[] {
+  const choices = meta?.fields[field]?.choices ?? [];
+  return choices.map((value) => ({
+    value,
+    label: choiceLabelOf(meta, field, value, locale),
+  }));
+}
+
+/**
+ * What a search box types into a filter.
+ *
+ * When the entity declared how a text finds it (`meta.search`), that template, with the text
+ * where it goes — `code starts with` and `name like`, or whatever the backend chose, and what
+ * it asks besides (`active = true`). Otherwise `like` over every text field the model says
+ * takes it, OR'd together: the fields come from the definition and not from a list kept by
+ * hand, so a model that grows a column is searchable by it the same day.
+ *
+ * With no `meta` at all there is nothing to search over yet, so this answers `undefined` —
+ * the same "no filter" a blank box already answers — rather than throwing on a screen that is
+ * still waiting for its first page.
  *
  * @param text - what the person typed; blank means no filter at all
  * @returns the expression, or `undefined` when there is nothing to search on
+ *
+ * @example
+ * // meta.search.where = {any: [number starts with TEXT, title like TEXT]}
+ * searchOver(meta, "F-1");
+ * // {any: [{field: "number", operator: "starts with", value: "F-1"},
+ * //        {field: "title", operator: "like", value: "F-1"}]}
  *
  * @example
  * const q = base.where(searchOver(meta, typed));
@@ -381,8 +466,100 @@ export function searchOver<T = AnyRecord>(
   if (meta == null) return undefined;
   const written = text.trim();
   if (written.length === 0) return undefined;
+  const template = searchTemplateOf(meta);
+  if (template !== undefined) return withText(template, written) as Expression<T> | undefined;
   const parts = Object.keys(meta.fields)
     .filter((name) => meta.fields[name]!.ops.includes("like"))
     .map((name) => ({ field: name, operator: "like" as const, value: written }));
   return any<T>(...(parts as Expression<T>[]));
+}
+
+/** How many references a select lists for a typed text — the engine's `NAME_SEARCH_LIMIT`. */
+export const MATCHING_LIMIT = 8;
+
+/**
+ * The reading a select (a many2one, an autocomplete) sends for what was typed: the entity's
+ * search template filled with it, a short page, each record as a reference — its identity and
+ * its display field. The same criteria the engine's own `matching` builds, so a select over
+ * REST, RPC or rows in hand finds what the backend's select would.
+ *
+ * Unlike {@link searchOver}, a blank text still asks what the template asks besides the text,
+ * and an entity that searches nothing (`search: null`) finds nothing for a typed text: an
+ * empty page, never every record. A definition that does not say (`search` absent — one
+ * {@link describeRows} read off rows in hand, an older backend) searches as `searchOver` does.
+ *
+ * @example
+ * // simple: what a select sends as the person types
+ * await tickets.page(matching(meta, "F-1"));
+ * // {where: {any: [...]}, pagination: {limit: 8}, specification: {}}
+ *
+ * @example
+ * // medium: the options of the select, labelled by the entity's display field
+ * const page = await tickets.page(matching(meta, typed));
+ * const options = page.rows.map((row) => ({ id: row[meta.identity], label: row[meta.display!] }));
+ */
+export function matching<T = AnyRecord>(
+  meta: Meta | null | undefined,
+  text: string,
+): Criteria<T> {
+  const written = text.trim();
+  const reference: Criteria<T> = { specification: {}, pagination: { limit: MATCHING_LIMIT } };
+  const template = meta == null ? undefined : searchTemplateOf(meta);
+  const where =
+    template !== undefined
+      ? (withText(template, written) as Expression<T> | undefined)
+      : meta?.search === undefined
+        ? searchOver<T>(meta, written)
+        : undefined;
+  if (where !== undefined) return { ...reference, where };
+  // Nothing to search by, yet something was typed: an empty page, never every record.
+  return written.length === 0 ? reference : { ...reference, pagination: { limit: 0 } };
+}
+
+/** The `where` of the entity's search template, read; `undefined` when it declared none. */
+function searchTemplateOf(meta: Meta): Expression | undefined {
+  const where = meta.search?.where;
+  return where === undefined || where === null ? undefined : readExpression(where);
+}
+
+/** Whether a value is the placeholder a search template holds where the text goes. */
+function isTextPlaceholder(value: unknown): boolean {
+  if (!isDynamic(value) || value.$ !== "param" || value.name !== "text") return false;
+  // `param("text", {plus: …})` is another value: only the bare placeholder is the text.
+  return Object.entries(value).every(
+    ([key, one]) => key === "$" || key === "name" || one == null,
+  );
+}
+
+/**
+ * A search template's filter with the text in place of every placeholder — the whole value, or
+ * each placeholder of a list. A condition holding one is dropped when there is no text, and a
+ * group left with nothing goes with it: the engine's `with_text`, leaf for leaf.
+ */
+function withText(expression: Expression, text: string): Expression | undefined {
+  if (isCondition(expression)) {
+    const { value } = expression;
+    const holds = Array.isArray(value)
+      ? value.some(isTextPlaceholder)
+      : isTextPlaceholder(value);
+    if (!holds) return expression;
+    if (text.length === 0) return undefined;
+    return {
+      ...expression,
+      value: Array.isArray(value)
+        ? value.map((one) => (isTextPlaceholder(one) ? text : one))
+        : text,
+    };
+  }
+  if (isNegate(expression)) {
+    const inner = withText(expression.negate, text);
+    return inner === undefined ? undefined : { negate: inner };
+  }
+  const grouped = isAll(expression) ? expression.all : expression.any;
+  const parts = grouped
+    .map((part) => withText(part, text))
+    .filter((part): part is Expression => part !== undefined);
+  if (parts.length === 0) return undefined;
+  if (parts.length === 1) return parts[0];
+  return isAll(expression) ? { all: parts } : { any: parts };
 }
