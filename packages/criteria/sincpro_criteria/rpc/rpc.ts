@@ -3,6 +3,8 @@ import { plain } from "@sincpro/criteria/criteria/builder";
 import type { AnyRecord } from "@sincpro/criteria/criteria/grammar";
 import type { Bucket, Envelope, Page } from "@sincpro/criteria/page/page";
 import { pageFrom } from "@sincpro/criteria/page/page";
+import type { Problem } from "@sincpro/criteria/page/problem";
+import { readProblem } from "@sincpro/criteria/page/problem";
 import type { Source } from "@sincpro/criteria/source/source";
 
 /** The two method names a read side of one aggregate publishes over JSON-RPC. */
@@ -39,14 +41,23 @@ export interface RpcErrorObject {
   data?: unknown;
 }
 
-/** The call answered with a transport-level failure, or the JSON-RPC envelope carried `error`. */
+/**
+ * The call answered with a transport-level failure, or the JSON-RPC envelope carried `error`.
+ *
+ * `problem` is the engine's own account of it, read from the error's `data` (or, for a
+ * transport failure, from the body) — the same members a REST failure carries — or `null` when
+ * there was none to read.
+ */
 export class RpcError extends Error {
+  public readonly problem: Problem | null;
+
   constructor(
     public readonly method: string,
     public readonly rpcError: RpcErrorObject,
   ) {
     super(`${method} — ${rpcError.code} ${rpcError.message}`);
     this.name = "RpcError";
+    this.problem = readProblem(rpcError.data);
   }
 }
 
@@ -151,7 +162,7 @@ export function rpcSource<T = AnyRecord>(
 
     const body = await response.text();
     if (!response.ok) {
-      throw new RpcError(method, { code: response.status, message: body });
+      throw new RpcError(method, { code: response.status, message: body, data: body });
     }
 
     const parsed = JSON.parse(body) as { result?: unknown; error?: RpcErrorObject };

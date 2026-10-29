@@ -339,3 +339,21 @@ day_of_month hour`) or `grain`, and `fill`; `Bucket.openable` is `false` for a p
 `engine/axes.ts` lists the values a `fill` completes and `engine/group.ts` answers parts, fills and
 the new folds over rows in hand, numbers ordered as numbers. `tests/analytics.test.ts` holds the same
 cases the framework holds over a memory store and SQL.
+
+## Choices, search templates and problems (framework 3.26)
+
+Added 2026-10-29. The contract was synced (the framework renamed the schema's `Level` to
+`GroupingLevel`; the wire is unchanged, the TS type keeps `Level`).
+
+- **Meta**: `FieldMeta.choice_labels` (what each enum value is called, keyed by the value as
+  text) with `choicesOf` / `choiceLabelOf`; a field with no `label` arrives named as its enum
+  names itself. `Meta.get_id`. `Meta.search` is the entity's `DEFAULT_LITERAL_SEARCH` — a
+  criteria whose `where` holds `dynamic.param("text")` — not a list of `{field, mode}`:
+  `searchOver` fills it when present, and `matching` builds the engine's own select criteria.
+  `tests/engine-meta.test.ts` was re-dumped from the framework.
+- **Problems**: `readProblem` reads the framework's `Problem` from a REST body, the gateway's
+  `{error}` or a JSON-RPC error's `data`; `RestError.problem` and `RpcError.problem` carry it.
+  JSON-RPC still sends validation errors as `{loc, msg}`; they are read into pointers here.
+- **Breaking**: `Meta.search` changes type; `searchOver` uses the entity's template when it has one.
+- **Not here**: extensions an entity delegates arrive nested under their key, which `Meta` does
+  not publish yet — the local engine reads those fields flat.

@@ -3,6 +3,8 @@ import type { AnyRecord } from "@sincpro/criteria/criteria/grammar";
 import { pack } from "@sincpro/criteria/criteria/pack";
 import type { Bucket, Envelope, Page } from "@sincpro/criteria/page/page";
 import { pageFrom } from "@sincpro/criteria/page/page";
+import type { Problem } from "@sincpro/criteria/page/problem";
+import { readProblem } from "@sincpro/criteria/page/problem";
 import type { Source } from "@sincpro/criteria/source/source";
 
 /** What a REST source needs beyond the URL: how to fetch, and what to send with every call. */
@@ -22,8 +24,16 @@ export interface RestSourceOptions {
   groupUrl?: string;
 }
 
-/** A read answered with a non-2xx status, or a body that did not read as JSON. */
+/**
+ * A read answered with a non-2xx status.
+ *
+ * `problem` is what the engine said about it — kind, reason, next step, the fields that did not
+ * validate — read from the body, or `null` when the body was not one (a proxy's page). `body`
+ * keeps the text as it came, for whatever the problem did not cover.
+ */
 export class RestError extends Error {
+  public readonly problem: Problem | null;
+
   constructor(
     public readonly status: number,
     public readonly url: string,
@@ -31,6 +41,7 @@ export class RestError extends Error {
   ) {
     super(`${status} answering ${url}${body ? ` — ${body}` : ""}`);
     this.name = "RestError";
+    this.problem = readProblem(body);
   }
 }
 
