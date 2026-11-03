@@ -427,7 +427,7 @@ Hooks, permissions merged with what the user typed, and grouping are in
 ## REST
 
 A framework service that exposes the same query over REST already accepts one query
-parameter, `criteria`, holding `pack(q)` — the plain JSON as one URL-safe string.
+parameter, `criteria`, holding the plain JSON of `q`, URL-encoded.
 
 ```ts
 import { resource } from "@sincpro/criteria";
@@ -442,9 +442,10 @@ const invoices = resource<Invoice>(
 const page = await invoices.page(postedSales);
 ```
 
-That is `GET /invoices?criteria=<packed>`. The same `postedSales` object goes out; `pack` is
-only how it fits in a URL. Grouping reuses the same URL; pass `groupUrl` only when that
-backend answers groups somewhere else.
+That is `GET /invoices?criteria=<json>`, readable and writable by hand. The same `postedSales`
+object goes out; a route that already carries a query (`/invoices?tenant_id=acme`) keeps it.
+Grouping reuses the same URL; pass `groupUrl` only when that backend answers groups somewhere
+else.
 
 ## Who depends on what
 
