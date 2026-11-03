@@ -1,6 +1,6 @@
 import type { CriteriaLike } from "@sincpro/criteria/criteria/builder";
+import { plain } from "@sincpro/criteria/criteria/builder";
 import type { AnyRecord } from "@sincpro/criteria/criteria/grammar";
-import { pack } from "@sincpro/criteria/criteria/pack";
 import type { Bucket, Envelope, Page } from "@sincpro/criteria/page/page";
 import { pageFrom } from "@sincpro/criteria/page/page";
 import type { Problem } from "@sincpro/criteria/page/problem";
@@ -48,7 +48,7 @@ export class RestError extends Error {
 /**
  * A source over a REST endpoint that speaks the engine's own envelope.
  *
- * Deliberately thin: `pack` and `pageFrom` already do the whole job of writing and reading the
+ * Deliberately thin: `plain` and `pageFrom` already do the whole job of writing and reading the
  * wire format, so the only thing missing to turn a URL into a {@link Source} was `fetch`
  * itself. The URL for `group` is never guessed — it is not this package's place to assume any
  * consumer's routing convention; pass `groupUrl` only when the backend genuinely answers
@@ -129,8 +129,16 @@ export function restSource<T = AnyRecord>(
     return JSON.parse(body) as Envelope & AnyRecord;
   }
 
+  /**
+   * The criteria as plain JSON in `?criteria=`, the format the framework's REST route reads.
+   *
+   * 1. Encode the plain JSON, not base64url: it is what the framework owns, and a URL a person
+   *    can read and write by hand.
+   * 2. Join with `&` when the route already carries its own query (`/projects?tenant_id=acme`).
+   */
   function urlFor(base: string, criteria: CriteriaLike<T>): string {
-    return `${base}?criteria=${pack(criteria)}`;
+    const joiner = base.includes("?") ? "&" : "?";
+    return `${base}${joiner}criteria=${encodeURIComponent(JSON.stringify(plain(criteria)))}`;
   }
 
   return {

@@ -166,7 +166,8 @@ permission, open (unlike measures, which are a closed list because the name reac
    `restSource(baseUrl, options)`, a thin `fetch` wrapper around the `pack`/`pageFrom` codec
    that already lived in the core (that codec was already the whole hard part — see the
    `sincpro_criteria/index.ts` and `source.ts` docstring examples that predate this addon).
-   `GET {baseUrl}?criteria=…` for a page. `group()` **reuses that same URL by default** — the
+   `GET {baseUrl}?criteria=<plain JSON>` for a page (it was base64url via `pack` until 0.3.0;
+   `unpack` and the framework read both). `group()` **reuses that same URL by default** — the
    criteria's own `grouping` is what asks for it, never a path this package infers. An earlier
    version of this addon defaulted `group()` to `{baseUrl}/groups`, generalizing from one
    observation (`sincpro_synthesis`'s router happens to route grouping separately) into an

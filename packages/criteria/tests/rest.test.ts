@@ -52,6 +52,32 @@ describe("restSource — a Source that wraps fetch around pack/pageFrom", () => 
     assert.deepEqual(sent.where, { field: "encoding", operator: "=", value: "utf-8" });
   });
 
+  it("sends the criteria as plain JSON, the format the framework's REST route reads", async () => {
+    const { fetchStub, calls } = stub(200, OK_PAGE);
+    const datasets = restSource<Dataset>("/datasets", { fetch: fetchStub });
+
+    await datasets.read({ where: { field: "encoding", operator: "=", value: "utf-8" } });
+
+    const raw = new URL(calls[0]!.url, "http://x").searchParams.get("criteria")!;
+    assert.deepEqual(JSON.parse(raw).where, {
+      field: "encoding",
+      operator: "=",
+      value: "utf-8",
+    });
+  });
+
+  it("joins with & when the route already carries its own query", async () => {
+    const { fetchStub, calls } = stub(200, OK_PAGE);
+    const datasets = restSource<Dataset>("/projects?tenant_id=acme", { fetch: fetchStub });
+
+    await datasets.read({ pagination: { limit: 5 } });
+
+    const url = new URL(calls[0]!.url, "http://x");
+    assert.equal(url.pathname, "/projects");
+    assert.equal(url.searchParams.get("tenant_id"), "acme");
+    assert.equal(unpack(url.searchParams.get("criteria")!).pagination?.limit, 5);
+  });
+
   it("groups from the same URL read() uses, by default — the criteria decides, not a guessed path", async () => {
     const { fetchStub, calls } = stub(200, OK_GROUPS);
     const datasets = resource<Dataset>(
