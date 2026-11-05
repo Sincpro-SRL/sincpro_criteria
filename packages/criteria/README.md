@@ -79,8 +79,23 @@ Text is searched two ways, both case-insensitive: `like` contains the value anyw
 `1.2.1.2.3`. In either, `%` and `_` are the text itself, never wildcards: `50%` finds
 `Descuento 50% off` and nothing that merely starts with `50`.
 
+**A filter crosses a relation** with `{through, selection}`: it holds when some record the
+relation holds — several, one or none — answers the selection, written over that record's own
+fields. A sale with a line of more than ten units:
+
+```ts
+criteria<Sale>().where({
+  through: "lines",
+  selection: { field: "qty", operator: ">", value: 10 },
+});
+```
+
+The server crosses it with a correlated `EXISTS`; `matches` and `filtered` answer it over the
+records in hand. A relation the definition does not mark `navigable` is dropped
+(`not_navigable`), as the server does.
+
 **The triple never travels.** It is read into `{field, operator, value}` before it leaves, so
-the wire, a saved reading and `entity_meta_data` all keep saying the same thing. `q.value` is
+the wire and a saved reading keep saying the same thing. `q.value` is
 that plain object; it goes in a URL, a POST body or a queue message unchanged.
 
 ### A value that is read when the filter runs
@@ -137,10 +152,10 @@ same rows. `merge` is total, so they never disagree quietly:
 
 | Part                              | Law                                                                                   |
 | --------------------------------- | ------------------------------------------------------------------------------------- |
-| `where`                           | AND — both restrictions hold                                                          |
+| `selection`                       | AND — both restrictions hold                                                          |
 | `specification`                   | intersection — a mask can only take away, which is what makes it safe as a permission |
 | `order`, `pagination`, `grouping` | the more specific one replaces                                                        |
-| `count`, `meta`                   | the more specific one replaces; `meta` ANDs, so `meta: false` can be said at all      |
+| `count`                           | the more specific one replaces, and silence never overrules one that was asked for    |
 | the cursor                        | **never carried over** — it belongs to one ordering over one filter                   |
 
 A permission the server hands out, and a filter the user typed, in the shape they actually
@@ -159,7 +174,7 @@ const typed = criteria<Account>().where(
 );
 
 const asked = merge(plain(permission), plain(typed));
-// { where: { all: [
+// { selection: { all: [
 //   { any: [{ field: "region", operator: "=", value: "north" }, { field: "owner", operator: "=", value: "ana" }] },
 //   { field: "kind", operator: "=", value: "asset" },
 //   { negate: { field: "region", operator: "=", value: "south" } },
@@ -167,13 +182,24 @@ const asked = merge(plain(permission), plain(typed));
 ```
 
 `asked` is what actually goes to `read()` — the user's filter narrows the permission, it can
-never widen past it, because `merge`'s law for `where` is always AND.
+never widen past it, because `merge`'s law for `selection` is always AND.
 
 ### What the model says about itself
 
-Every answer carries `entity_meta_data` unless the criteria turned it off. A filter form, a
-column menu and a search box are built from it, so a client can never ask for a field it was
-not shown:
+The model is described once: the bounded context publishes it as a contract — JSON Schema with
+the framework's vocabulary under `x-sincpro` — in the discovery document its wire serves
+(OpenAPI's `components.schemas`, OpenRPC's, MCP's, or the file `export_metamodel` writes).
+`metaFromContract` reads it into the definition everything here takes; hand it to the source and
+every page carries it, while each answer says only which version of the model it is
+(`model_version`, compared with `versionOf(contract)` — another one means: load the document
+again). A filter form, a column menu and a search box are built from it, so a client can never
+ask for a field it was not shown:
+
+```ts
+const document = await (await fetch("/openapi.json")).json();
+const meta = metaFromContract(document.components.schemas.Dataset);
+const datasets = resource<Dataset>(restSource("/datasets", { meta }));
+```
 
 ```ts
 fieldsThatFilter(meta); // what a filter may name
@@ -186,7 +212,7 @@ searchOver(meta, typed); // the entity's own search template, else `like` over e
 matching(meta, typed); // what a many2one select sends: the template, 8 references
 ```
 
-`meta.search` is the entity's `DEFAULT_LITERAL_SEARCH`: a criteria whose `where` holds
+`meta.search` is the entity's `DEFAULT_LITERAL_SEARCH`: a criteria whose `selection` holds
 `dynamic.param("text")` where the typed text goes. `searchOver` and `matching` fill it exactly
 as the engine's own `matching` does, so a select finds what the backend's select would.
 
@@ -431,7 +457,7 @@ const saved = unpack(localStorage.getItem("my-reading")!);
 await datasets.page(saved); // run it
 criteria<Dataset>(saved).where(["row_count", ">", 1000]); // go on building over it
 merge(saved, whatTheScreenAlwaysAdds); // cross it, under the law
-conditionsOf(saved.where).map((one) => explainFilter(one, { meta })); // draw its chips
+conditionsOf(saved.selection).map((one) => explainFilter(one, { meta })); // draw its chips
 ```
 
 `forSaving` drops the cursor: it names a row under one ordering over one filter and does not

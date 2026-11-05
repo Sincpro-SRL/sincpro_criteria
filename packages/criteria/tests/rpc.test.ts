@@ -11,7 +11,7 @@ const OK_PAGE = {
   datasets: [{ dataset_id: "d1", name: "labs.csv" }],
   cursor: null,
   count: { value: 1, exact: true },
-  entity_meta_data: datasetMeta,
+  model_version: "3f9c",
   dropped: [],
 };
 
@@ -19,7 +19,7 @@ const OK_GROUPS = {
   groups: [{ field: "encoding", value: "utf-8", count: 5, criteria: {} }],
   cursor: null,
   count: null,
-  entity_meta_data: null,
+  model_version: "3f9c",
   dropped: [],
 };
 
@@ -48,12 +48,18 @@ describe("rpcSource — a Source over the framework's JSON-RPC 2.0 entrypoint", 
   it("POSTs a jsonrpc 2.0 envelope with the criteria under params.criteria", async () => {
     const { fetchStub, calls } = stub(200, rpcResult(OK_PAGE));
     const datasets = resource<Dataset>(
-      rpcSource("/rpc", { read: "catalog.query.ListDatasets" }, { fetch: fetchStub }),
+      rpcSource(
+        "/rpc",
+        { read: "catalog.query.ListDatasets" },
+        { fetch: fetchStub, meta: datasetMeta },
+      ),
     );
 
     const page = await datasets.page(criteria<Dataset>().where(["encoding", "=", "utf-8"]));
 
     assert.equal(page.rows.length, 1);
+    assert.equal(page.meta, datasetMeta, "the definition the source was given");
+    assert.equal(page.version, "3f9c", "the version the server answered with");
     assert.equal(calls.length, 1);
     assert.equal(calls[0]!.url, "/rpc");
     assert.equal(calls[0]!.init?.method, "POST");
@@ -62,7 +68,7 @@ describe("rpcSource — a Source over the framework's JSON-RPC 2.0 entrypoint", 
     assert.equal(body.jsonrpc, "2.0");
     assert.equal(body.method, "catalog.query.ListDatasets");
     assert.deepEqual((body.params as { criteria: unknown }).criteria, {
-      where: { field: "encoding", operator: "=", value: "utf-8" },
+      selection: { field: "encoding", operator: "=", value: "utf-8" },
     });
   });
 

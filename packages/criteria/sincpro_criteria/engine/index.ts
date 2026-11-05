@@ -2,6 +2,7 @@ export * from "@sincpro/criteria/engine/answer";
 export * from "@sincpro/criteria/engine/compare";
 export * from "@sincpro/criteria/engine/cursor";
 export * from "@sincpro/criteria/engine/evaluate";
+export * from "@sincpro/criteria/engine/formula";
 export * from "@sincpro/criteria/engine/grain";
 export * from "@sincpro/criteria/engine/group";
 export * from "@sincpro/criteria/engine/measure";

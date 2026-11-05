@@ -161,9 +161,8 @@ describe("a page out of rows in hand", () => {
     assert.equal(answer(rows, criteria<Dataset>().counting("none"), datasetMeta).count, null);
   });
 
-  it("carries the definition unless it was turned off", () => {
+  it("carries the definition it answered over", () => {
     assert.equal(answer(rows, criteria<Dataset>(), datasetMeta).meta, datasetMeta);
-    assert.equal(answer(rows, criteria<Dataset>().meta(false), datasetMeta).meta, null);
   });
 
   it("drops what the model cannot answer and still runs", () => {

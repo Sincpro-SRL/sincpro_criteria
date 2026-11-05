@@ -9,7 +9,7 @@ describe("the builder", () => {
   it("is the plain object and nothing else", () => {
     const q = criteria<Dataset>().where(["encoding", "=", "utf-8"]).limit(100);
     assert.deepEqual(q.value, {
-      where: { field: "encoding", operator: "=", value: "utf-8" },
+      selection: { field: "encoding", operator: "=", value: "utf-8" },
       pagination: { limit: 100 },
     });
     assert.equal(JSON.stringify(q), JSON.stringify(q.value));
@@ -18,7 +18,7 @@ describe("the builder", () => {
   it("never touches the one it came from", () => {
     const base = criteria<Dataset>().limit(50);
     const refined = base.where(["name", "like", "labs"]);
-    assert.equal(base.value.where, undefined);
+    assert.equal(base.value.selection, undefined);
     assert.deepEqual(refined.value.pagination, { limit: 50 });
   });
 
@@ -26,14 +26,14 @@ describe("the builder", () => {
     const q = criteria<Dataset>()
       .where(["encoding", "=", "utf-8"])
       .where(["row_count", ">", 1000]);
-    assert.deepEqual(q.value.where, {
+    assert.deepEqual(q.value.selection, {
       all: [readFilter(["encoding", "=", "utf-8"]), readFilter(["row_count", ">", 1000])],
     });
   });
 
   it("ignores the parts that are not there", () => {
     const q = criteria<Dataset>().where(undefined);
-    assert.equal(q.value.where, undefined);
+    assert.equal(q.value.selection, undefined);
   });
 });
 
@@ -105,9 +105,8 @@ describe("the rest of what a criteria says", () => {
     assert.deepEqual(q.value.specification, { name: {}, row_count: {} });
   });
 
-  it("says how much counting costs, and whether the definition travels", () => {
-    const q = criteria<Dataset>().counting("exact").meta(false);
+  it("says how much counting costs", () => {
+    const q = criteria<Dataset>().counting("exact");
     assert.equal(q.value.count, "exact");
-    assert.equal(q.value.meta, false);
   });
 });

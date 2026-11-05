@@ -126,8 +126,7 @@ const reading = criteria<Invoice>()
   .whereMeasures(["total", ">", 10000], ["count", ">=", 1])
   .orderGroups("-total")
   .limitGroups(5)
-  .counting("exact")
-  .meta(true);
+  .counting("exact");
 
 describe("one reading that says everything at once", () => {
   it("filters the rows with AND, OR and NOT over four fields", () => {
@@ -265,7 +264,7 @@ describe("one reading that says everything at once", () => {
     const inside = answer<Invoice>(rows, { ...january!.criteria, pagination: {} }, meta);
     assert.deepEqual(inside.rows.map((one) => one.invoice_id).sort(), ["f1", "f2", "f5"]);
 
-    const dates = conditionsOf(january!.criteria.where).filter(
+    const dates = conditionsOf(january!.criteria.selection).filter(
       (one) => one.field === "posted_at",
     );
     assert.deepEqual(
@@ -291,7 +290,7 @@ describe("the same reading, through a URL and back", () => {
     const written = JSON.parse(JSON.stringify(reading.value));
     const read = readCriteria(written);
 
-    assert.equal(conditionsOf(read.where).length, 5);
+    assert.equal(conditionsOf(read.selection).length, 5);
     assert.deepEqual(read.order, [
       { field: "posted_at", descending: true },
       { field: "invoice_id" },

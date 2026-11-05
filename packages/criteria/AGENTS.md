@@ -50,6 +50,11 @@ The layout says what each part is:
    meaning needs the reason written down and a test both sides would pass.
 7. **No guessing with dates.** `Date.parse("utf-8")` is a day in 2001. Use `readInstant`.
 8. **English, everywhere.** Identifiers, comments, docs, commit messages.
+9. **The parity fixtures are the framework's, byte for byte.** `tests/criteria-parity.json`,
+   `tests/criteria-resolution.json`, `tests/contract-parity.json` and `criteria.schema.json` are
+   written by sincpro_framework and copied with `make sync-parity`; never edited or formatted here
+   (each is in `.prettierignore`), or `make check-parity` fails on bytes even when the content
+   agrees. A new fixture goes into `CONTRACT` in the Makefile and into `.prettierignore` together.
 
 ## Docstrings
 
@@ -92,7 +97,8 @@ criteria<Dataset>()
   .specification({ name: {}, runs: { pagination: { limit: 20 } } });
 ```
 
-- Read the operators a field takes from `entity_meta_data`, never from a list kept by hand.
+- Read the operators a field takes from the definition the bounded context published
+  (`metaFromContract`), never from a list kept by hand.
 - The root export is the door; the engine that answers a criteria over rows in hand is
   `@sincpro/criteria/engine`, and nothing from it belongs in the root.
 - Never order by a field whose `sortable` is false.

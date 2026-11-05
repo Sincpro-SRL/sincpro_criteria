@@ -6,21 +6,21 @@ import { criteria, merge, narrowedBy, readFilter, resumingFrom } from "@sincpro/
 describe("the law of merging two criteria", () => {
   it("ANDs the filters, because both restrictions hold", () => {
     const merged = merge(
-      { where: readFilter(["a", "=", 1]) },
-      { where: readFilter(["b", ">", 2]) },
+      { selection: readFilter(["a", "=", 1]) },
+      { selection: readFilter(["b", ">", 2]) },
     );
-    assert.deepEqual(merged.where, {
+    assert.deepEqual(merged.selection, {
       all: [readFilter(["a", "=", 1]), readFilter(["b", ">", 2])],
     });
   });
 
   it("keeps the filter flat however many times it is merged", () => {
     const once = merge(
-      { where: readFilter(["a", "=", 1]) },
-      { where: readFilter(["b", "=", 2]) },
+      { selection: readFilter(["a", "=", 1]) },
+      { selection: readFilter(["b", "=", 2]) },
     );
-    const twice = merge(once, { where: readFilter(["c", "=", 3]) });
-    assert.deepEqual(twice.where, {
+    const twice = merge(once, { selection: readFilter(["c", "=", 3]) });
+    assert.deepEqual(twice.selection, {
       all: [readFilter(["a", "=", 1]), readFilter(["b", "=", 2]), readFilter(["c", "=", 3])],
     });
   });
@@ -35,13 +35,16 @@ describe("the law of merging two criteria", () => {
   });
 
   it("keeps this one's page when the other said nothing about it", () => {
-    const merged = merge({ pagination: { limit: 20 } }, { where: readFilter(["a", "=", 1]) });
+    const merged = merge(
+      { pagination: { limit: 20 } },
+      { selection: readFilter(["a", "=", 1]) },
+    );
     assert.deepEqual(merged.pagination, { limit: 20 });
   });
 
   it("NEVER carries a cursor over, because the set it named may no longer exist", () => {
     const mine = { pagination: { limit: 20, strategy: { token: "eyJrIjo" } } };
-    const merged = merge(mine, { where: readFilter(["a", "=", 1]) });
+    const merged = merge(mine, { selection: readFilter(["a", "=", 1]) });
     assert.deepEqual(merged.pagination, { limit: 20 });
   });
 
@@ -61,10 +64,10 @@ describe("the law of merging two criteria", () => {
   it("merges the nodes that survive, at any depth", () => {
     const narrowed = narrowedBy(
       { runs: { pagination: { limit: 20 } } },
-      { runs: { where: readFilter(["state", "=", "done"]) } },
+      { runs: { selection: readFilter(["state", "=", "done"]) } },
     );
     assert.deepEqual(narrowed.runs, {
-      where: readFilter(["state", "=", "done"]),
+      selection: readFilter(["state", "=", "done"]),
       pagination: { limit: 20 },
     });
   });
@@ -75,13 +78,6 @@ describe("the law of merging two criteria", () => {
     assert.deepEqual(merge(mine, { grouping: { group_by: [{ field: "name" }] } }).grouping, {
       group_by: [{ field: "name" }],
     });
-  });
-
-  it("ANDs meta, so that meta:false can be said at all", () => {
-    assert.equal(merge({ meta: false }, {}).meta, false);
-    assert.equal(merge({}, { meta: false }).meta, false);
-    assert.equal(merge({ meta: true }, { meta: true }).meta, true);
-    assert.equal(merge({}, {}).meta, undefined);
   });
 
   it("does not let silence overrule a count that was asked for", () => {
@@ -108,7 +104,7 @@ describe("merging through the builder", () => {
     const saved = criteria().where(["a", "=", 1]).limit(20);
     const typed = criteria().where(["b", ">", 2]);
     assert.deepEqual(saved.merge(typed).value, {
-      where: {
+      selection: {
         all: [readFilter(["a", "=", 1]), readFilter(["b", ">", 2])],
       },
       pagination: { limit: 20 },

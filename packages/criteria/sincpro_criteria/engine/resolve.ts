@@ -407,6 +407,16 @@ function readByServer(value: Value): value is Dynamic {
 export function hasDynamicValues<T = AnyRecord>(
   expression: Expression<T> | undefined,
 ): boolean {
+  if (expression !== undefined && "through" in expression) {
+    return hasDynamicValues(expression.selection);
+  }
+  if (expression !== undefined && ("all" in expression || "any" in expression)) {
+    const parts: Expression<T>[] = "all" in expression ? expression.all : expression.any;
+    return parts.some((part) => hasDynamicValues(part));
+  }
+  if (expression !== undefined && "negate" in expression) {
+    return hasDynamicValues(expression.negate);
+  }
   return conditionsOf(expression).some(
     (one) =>
       readByServer(one.value) ||
@@ -421,6 +431,9 @@ function rebuilt(
   if ("field" in expression) return leaf(expression);
   if (isAll(expression)) return { all: expression.all.map((part) => rebuilt(part, leaf)) };
   if (isAny(expression)) return { any: expression.any.map((part) => rebuilt(part, leaf)) };
+  if ("through" in expression) {
+    return { through: expression.through, selection: rebuilt(expression.selection, leaf) };
+  }
   return { negate: rebuilt(expression.negate, leaf) };
 }
 

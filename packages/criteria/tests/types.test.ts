@@ -13,12 +13,12 @@ import type { Dataset } from "./fixtures";
 describe("typing is opt-in", () => {
   it("asks nothing of a caller that has no type yet", () => {
     const q = criteria().where(["whatever", "=", 1], ["anything_else", ">", 2]);
-    assert.ok(q.value.where);
+    assert.ok(q.value.selection);
   });
 
   it("checks the field names when there is a record to check them against", () => {
     const q = criteria<Dataset>().where(["encoding", "=", "utf-8"], ["row_count", ">", 1000]);
-    assert.ok(q.value.where);
+    assert.ok(q.value.selection);
   });
 
   it("refuses a field the record does not have", () => {
@@ -26,7 +26,7 @@ describe("typing is opt-in", () => {
       // @ts-expect-error 'encodig' is not a field of Dataset
       ["encodig", "=", "utf-8"],
     );
-    assert.ok(q.value.where);
+    assert.ok(q.value.selection);
   });
 
   it("refuses an ordering, a level and a mask over fields the record does not have", () => {
@@ -48,10 +48,10 @@ describe("typing is opt-in", () => {
 
   it("merges two plain criteria that name different fields", () => {
     const merged = merge(
-      { where: readFilter(["a", "=", 1]) },
-      { where: readFilter(["b", ">", 2]) },
+      { selection: readFilter(["a", "=", 1]) },
+      { selection: readFilter(["b", ">", 2]) },
     );
-    assert.ok(merged.where);
+    assert.ok(merged.selection);
   });
 
   it("refuses an ordering by a field the record does not have", () => {
@@ -101,7 +101,7 @@ describe("a value that is read when the filter runs is typed too", () => {
         dynamic.period({ unit: "week", last: 2, includeCurrent: true }),
       ],
     );
-    assert.ok(q.value.where);
+    assert.ok(q.value.selection);
   });
 
   it("refuses a period that is not one the engine has", () => {

@@ -17,7 +17,7 @@ describe("what the model cannot answer is dropped, never refused", () => {
       datasetMeta,
     );
     assert.deepEqual(dropped, [{ field: "legacy_flag", reason: "unknown_field" }]);
-    assert.deepEqual(checked.where, readFilter(["encoding", "=", "utf-8"]));
+    assert.deepEqual(checked.selection, readFilter(["encoding", "=", "utf-8"]));
   });
 
   it("drops an operator the type does not take", () => {
@@ -58,7 +58,7 @@ describe("the tree collapses around what it lost", () => {
       ),
       datasetMeta,
     );
-    assert.equal(checked.where, undefined);
+    assert.equal(checked.selection, undefined);
   });
 
   it("unwraps a connective left with one part", () => {
@@ -68,7 +68,7 @@ describe("the tree collapses around what it lost", () => {
       ),
       datasetMeta,
     );
-    assert.deepEqual(checked.where, readFilter(["encoding", "=", "utf-8"]));
+    assert.deepEqual(checked.selection, readFilter(["encoding", "=", "utf-8"]));
   });
 });
 
@@ -78,7 +78,7 @@ describe("values are read into the type the column compares against", () => {
       criteria<Dataset>().where(["row_count", ">", "1000"]),
       datasetMeta,
     );
-    assert.deepEqual(checked.where, readFilter(["row_count", ">", 1000]));
+    assert.deepEqual(checked.selection, readFilter(["row_count", ">", 1000]));
   });
 
   it("reads every member of a multi-valued operator", () => {
@@ -87,7 +87,7 @@ describe("values are read into the type the column compares against", () => {
       datasetMeta,
     );
     assert.deepEqual(dropped, []);
-    assert.deepEqual(checked.where, readFilter(["row_count", "between", [10, 20]]));
+    assert.deepEqual(checked.selection, readFilter(["row_count", "between", [10, 20]]));
   });
 
   it("refuses two bounds that are not two", () => {
@@ -104,7 +104,7 @@ describe("values are read into the type the column compares against", () => {
       datasetMeta,
     );
     assert.deepEqual(dropped, []);
-    assert.deepEqual(checked.where, readFilter(["producer_id", "is null", true]));
+    assert.deepEqual(checked.selection, readFilter(["producer_id", "is null", true]));
   });
 
   it("asks about one member of a list column", () => {
@@ -197,7 +197,7 @@ describe("a node inside an expanded relation", () => {
 
   it("reports what the other side cannot answer, by its path", () => {
     const { dropped } = validate(
-      criteria().specification({ runs: { where: readFilter(["gone", "=", 1]) } }),
+      criteria().specification({ runs: { selection: readFilter(["gone", "=", 1]) } }),
       withRelation,
     );
     assert.deepEqual(dropped, [{ field: "runs.gone", reason: "unknown_field" }]);
@@ -214,11 +214,14 @@ describe("a node inside an expanded relation", () => {
   it("keeps the node it could check, cut to what survived", () => {
     const { criteria: checked } = validate(
       criteria().specification({
-        runs: { where: where.all(["state", "=", "done"], ["gone", "=", 1]) },
+        runs: { selection: where.all(["state", "=", "done"], ["gone", "=", 1]) },
       }),
       withRelation,
     );
-    assert.deepEqual(checked.specification?.runs?.where, readFilter(["state", "=", "done"]));
+    assert.deepEqual(
+      checked.specification?.runs?.selection,
+      readFilter(["state", "=", "done"]),
+    );
   });
 });
 
@@ -250,7 +253,7 @@ describe("a blank box in a filter form", () => {
       datasetMeta,
     );
     assert.deepEqual(dropped, [{ field: "row_count", reason: "bad_value" }]);
-    assert.equal(checked.where, undefined);
+    assert.equal(checked.selection, undefined);
   });
 
   it("is not a zero for a decimal either", () => {

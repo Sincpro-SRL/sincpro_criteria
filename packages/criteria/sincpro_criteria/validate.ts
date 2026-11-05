@@ -50,10 +50,10 @@ export interface Validation<T = AnyRecord> {
  * Checks a criteria against a model definition.
  *
  * @param written - the criteria, as an object or a builder
- * @param meta - the definition that came back in `entity_meta_data`
+ * @param meta - the definition of the model, read from its published contract (`metaFromContract`)
  *
  * @example
- * const { criteria, dropped, refused } = validate(q, answer.entity_meta_data!);
+ * const { criteria, dropped, refused } = validate(q, metaFromContract(contract));
  * if (refused.length === 0) await read(criteria);
  */
 export function validate<T = AnyRecord>(written: CriteriaLike<T>, meta: Meta): Validation<T> {
@@ -62,13 +62,13 @@ export function validate<T = AnyRecord>(written: CriteriaLike<T>, meta: Meta): V
   const refused: Refusal[] = [];
   const checked: Criteria<T> = { ...criteria };
 
-  if (criteria.where !== undefined) {
-    const pruned = prune(criteria.where as Expression, meta, dropped);
-    if (pruned === undefined) delete checked.where;
-    else checked.where = pruned as Expression<T>;
+  if (criteria.selection !== undefined) {
+    const pruned = prune(criteria.selection as Expression, meta, dropped);
+    if (pruned === undefined) delete checked.selection;
+    else checked.selection = pruned as Expression<T>;
   }
 
-  for (const leaf of conditionsOf(criteria.where as Expression | undefined)) {
+  for (const leaf of conditionsOf(criteria.selection as Expression | undefined)) {
     if (isDynamic(leaf.value) && leaf.value.$ === "period" && leaf.operator !== "between") {
       refused.push({
         field: leaf.field,
@@ -159,7 +159,7 @@ export function validate<T = AnyRecord>(written: CriteriaLike<T>, meta: Meta): V
         reason: "unknown_total",
         message:
           `'${name}' is not one of this grouping's totals; 'having' reads ` +
-          `${[...totals].join(", ")} — to filter rows use 'where'`,
+          `${[...totals].join(", ")} — to filter rows use 'selection'`,
       });
     }
   }
@@ -198,6 +198,28 @@ function prune(
       .map((part) => prune(part, meta, dropped))
       .filter((part): part is Expression => part !== undefined);
     return parts.length > 1 ? { any: parts } : parts[0];
+  }
+  if ("through" in expression) {
+    // A relation that is not there, or that no filter may cross, drops the whole crossing;
+    // its selection is checked against what it points at when the definition holds it — the
+    // server checks it either way — each loss named by its path (`lines.qty`).
+    const relation = meta.fields[expression.through];
+    if (relation === undefined || relation.navigable !== true) {
+      dropped.push({
+        field: expression.through,
+        reason: relation === undefined ? "unknown_field" : "not_navigable",
+      });
+      return undefined;
+    }
+    if (relation.definition === undefined || relation.definition === null) return expression;
+    const losses: Dropped[] = [];
+    const inner = prune(expression.selection, relation.definition, losses);
+    for (const one of losses) {
+      dropped.push({ ...one, field: `${expression.through}.${one.field}` });
+    }
+    return inner === undefined
+      ? undefined
+      : { through: expression.through, selection: inner };
   }
   const inner = prune(expression.negate, meta, dropped);
   return inner === undefined ? undefined : { negate: inner };
@@ -304,5 +326,6 @@ function namesIn(expression: Expression | undefined): string[] {
   if (isCondition(expression)) return [expression.field];
   if (isAll(expression)) return expression.all.flatMap(namesIn);
   if (isAny(expression)) return expression.any.flatMap(namesIn);
+  if ("through" in expression) return [expression.through];
   return namesIn(expression.negate);
 }

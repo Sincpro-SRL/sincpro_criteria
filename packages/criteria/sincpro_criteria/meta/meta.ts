@@ -13,6 +13,7 @@ import type {
   Operator,
 } from "@sincpro/criteria/criteria/grammar";
 import { GRAINS, PERIODS, UNITS } from "@sincpro/criteria/criteria/grammar";
+import type { Formula } from "@sincpro/criteria/engine/formula";
 
 /** The logical type of a field: the full vocabulary the engine publishes. */
 export const FIELD_TYPES = [
@@ -28,6 +29,7 @@ export const FIELD_TYPES = [
   "many2one",
   "one2many",
   "many2many",
+  "uuid",
   "unknown",
 ] as const;
 
@@ -191,6 +193,37 @@ export interface FieldMeta {
   /** Included although derivable from `type`, so a consumer never has to carry the table. */
   ops: Operator[];
 
+  /**
+   * How a form shows the field: the kind's own (`select` for a choice, `decimal` for an exact
+   * number, `money` for an amount, `lines` for a list of records…) unless the entity's
+   * presentation named another — any name a client registers a component under.
+   */
+  widget?: string;
+
+  /** The computed fields a change of this one moves, in the order they run (`@compute`). */
+  affects?: string[];
+
+  /** The rules (`@check`) a change of this one is judged by. */
+  judged_by?: string[];
+
+  /**
+   * What the value holds, when its type is a value object that says so: an expression over
+   * `value`, which {@link matches} checks offline as the server checks it on construction.
+   */
+  holds?: Expression | null;
+
+  /**
+   * What the field's computation returns, when the server could write it down — a client
+   * computes it offline with {@link valueOf}, as the server does; absent: the server computes it.
+   */
+  computes?: Formula | null;
+
+  /** Whether a filter may cross this relation (`through`): some related record answers it. */
+  navigable?: boolean;
+
+  /** How a list adds the field up at its foot (`sum`, `avg`…), when the entity says so. */
+  total?: string | null;
+
   /** Several of them: a `one2many`, a `many2many`, or a list of embedded values. */
   many?: boolean;
 
@@ -299,8 +332,8 @@ export function isRelational(field: FieldMeta): boolean {
 
 /**
  * Every function below takes `meta` as `Meta | null | undefined`, not just `Meta`, on
- * purpose: `reading.meta` genuinely is `null` before the first page arrives, an older backend
- * may never send `entity_meta_data` at all, and `criteria.meta: false` turns it off by choice.
+ * purpose: `reading.meta` genuinely is `null` before the first page arrives, and a source that
+ * was given no definition (`metaFromContract`) never has one.
  * None of that is a bug in the caller — a screen built against a definition that has not
  * arrived yet is the normal first render, not an exception. Every function here answers the
  * same way {@link operatorsFor} already answered a field the definition never mentioned: an
@@ -491,7 +524,7 @@ export const MATCHING_LIMIT = 8;
  * @example
  * // simple: what a select sends as the person types
  * await tickets.page(matching(meta, "F-1"));
- * // {where: {any: [...]}, pagination: {limit: 8}, specification: {}}
+ * // {selection: {any: [...]}, pagination: {limit: 8}, specification: {}}
  *
  * @example
  * // medium: the options of the select, labelled by the entity's display field
@@ -505,21 +538,23 @@ export function matching<T = AnyRecord>(
   const written = text.trim();
   const reference: Criteria<T> = { specification: {}, pagination: { limit: MATCHING_LIMIT } };
   const template = meta == null ? undefined : searchTemplateOf(meta);
-  const where =
+  const selection =
     template !== undefined
       ? (withText(template, written) as Expression<T> | undefined)
       : meta?.search === undefined
         ? searchOver<T>(meta, written)
         : undefined;
-  if (where !== undefined) return { ...reference, where };
+  if (selection !== undefined) return { ...reference, selection };
   // Nothing to search by, yet something was typed: an empty page, never every record.
   return written.length === 0 ? reference : { ...reference, pagination: { limit: 0 } };
 }
 
-/** The `where` of the entity's search template, read; `undefined` when it declared none. */
+/** The `selection` of the entity's search template, read; `undefined` when it declared none. */
 function searchTemplateOf(meta: Meta): Expression | undefined {
-  const where = meta.search?.where;
-  return where === undefined || where === null ? undefined : readExpression(where);
+  const selection = meta.search?.selection;
+  return selection === undefined || selection === null
+    ? undefined
+    : readExpression(selection);
 }
 
 /** Whether a value is the placeholder a search template holds where the text goes. */
@@ -554,6 +589,12 @@ function withText(expression: Expression, text: string): Expression | undefined 
   if (isNegate(expression)) {
     const inner = withText(expression.negate, text);
     return inner === undefined ? undefined : { negate: inner };
+  }
+  if ("through" in expression) {
+    const inner = withText(expression.selection, text);
+    return inner === undefined
+      ? undefined
+      : { through: expression.through, selection: inner };
   }
   const grouped = isAll(expression) ? expression.all : expression.any;
   const parts = grouped

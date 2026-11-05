@@ -28,7 +28,7 @@ const fromTheEngine: Meta = {
   get_id: "code",
   display: "name",
   search: {
-    where: {
+    selection: {
       any: [
         {
           field: "code",
@@ -75,7 +75,7 @@ const fromTheEngine: Meta = {
     meta: true,
   },
   detail: {
-    where: null,
+    selection: null,
     order: [],
     pagination: {
       limit: 50,
@@ -85,7 +85,7 @@ const fromTheEngine: Meta = {
     },
     specification: {
       code: {
-        where: null,
+        selection: null,
         order: [],
         pagination: {
           limit: 50,
@@ -105,7 +105,7 @@ const fromTheEngine: Meta = {
         meta: true,
       },
       name: {
-        where: null,
+        selection: null,
         order: [],
         pagination: {
           limit: 50,
@@ -525,7 +525,7 @@ describe("the definition the engine sends", () => {
     assert.equal(fromTheEngine.display, "name");
     assert.equal(fromTheEngine.get_id, "code");
     assert.equal(fromTheEngine.default_order, "code,-amount");
-    assert.deepEqual(readCriteria(fromTheEngine.search).where, {
+    assert.deepEqual(readCriteria(fromTheEngine.search).selection, {
       any: [
         { field: "code", operator: "=", value: { $: "param", name: "text" } },
         { field: "code", operator: "starts with", value: { $: "param", name: "text" } },
@@ -571,7 +571,7 @@ describe("the definition the engine sends", () => {
     assert.deepEqual(matching(fromTheEngine, "1.1"), {
       specification: {},
       pagination: { limit: 8 },
-      where: searchOver(fromTheEngine, "1.1"),
+      selection: searchOver(fromTheEngine, "1.1"),
     });
     assert.deepEqual(matching(fromTheEngine, ""), {
       specification: {},
@@ -583,7 +583,7 @@ describe("the definition the engine sends", () => {
     const searchesNothing: Meta = { ...fromTheEngine, search: null };
 
     assert.deepEqual(matching(searchesNothing, "1.1").pagination, { limit: 0 });
-    assert.equal(matching(searchesNothing, "1.1").where, undefined);
+    assert.equal(matching(searchesNothing, "1.1").selection, undefined);
     assert.deepEqual(matching(searchesNothing, " ").pagination, { limit: 8 });
     assert.deepEqual(matching(null, "1.1").pagination, { limit: 0 });
   });
@@ -591,7 +591,7 @@ describe("the definition the engine sends", () => {
   it("searches rows in hand by their text fields, having no template to read", () => {
     const meta = describeRows([{ id: "1", code: "1.1", amount: 3 }]);
 
-    assert.deepEqual(matching(meta, "1.1").where, {
+    assert.deepEqual(matching(meta, "1.1").selection, {
       any: [
         { field: "id", operator: "like", value: "1.1" },
         { field: "code", operator: "like", value: "1.1" },

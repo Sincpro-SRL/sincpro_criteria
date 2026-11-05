@@ -164,8 +164,8 @@ export class CriteriaBuilder<T = AnyRecord, Totals extends string = never> {
    * )
    */
   where(...parts: (Filter<T> | undefined)[]): CriteriaBuilder<T, Totals> {
-    const where = combined<T>(this.value.where, ...parts);
-    return this.with(where === undefined ? {} : { where });
+    const selection = combined<T>(this.value.selection, ...parts);
+    return this.with(selection === undefined ? {} : { selection });
   }
 
   /**
@@ -397,14 +397,6 @@ export class CriteriaBuilder<T = AnyRecord, Totals extends string = never> {
   /** How much counting costs: `none`, `capped` (stops at a ceiling and says so), `exact`. */
   counting(mode: CountMode): CriteriaBuilder<T, Totals> {
     return this.with({ count: mode });
-  }
-
-  /**
-   * Whether the answer carries the model definition. Turning it off is paid for in surprise:
-   * a client that turns it off cannot build its filter form from what it received.
-   */
-  meta(travels: boolean): CriteriaBuilder<T, Totals> {
-    return this.with({ meta: travels });
   }
 
   /**

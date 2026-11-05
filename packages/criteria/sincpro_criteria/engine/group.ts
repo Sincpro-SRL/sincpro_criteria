@@ -101,7 +101,7 @@ function tree<T>(
   if (level.fill) {
     const field = meta.fields[level.field];
     if (field === undefined) throw new InvalidCriteria(`'${level.field}': no such field`);
-    for (const value of axisValues(level, field, criteria.where)) {
+    for (const value of axisValues(level, field, criteria.selection)) {
       const key = keyOf(value);
       if (!held.has(key)) held.set(key, { value, range: undefined, rows: [] });
     }
@@ -123,7 +123,7 @@ function tree<T>(
       // `having` reads the numbers the group folded, plus `count` — never the rows' own
       // fields, which is what `where` is for.
       const answered = { count: mine.length, ...numbers };
-      if (!matches(answered, grouping.where_measures as Expression)) continue;
+      if (!matches(answered as AnyRecord, grouping.where_measures as Expression)) continue;
     }
 
     // The reading that opens this bucket. The grouping is cleared: opening a bucket lists its
@@ -133,7 +133,7 @@ function tree<T>(
     const opens: Criteria<T> = {
       ...(level.part
         ? criteria
-        : merge<T>(criteria, { where: conditionFor(level, value, range) })),
+        : merge<T>(criteria, { selection: conditionFor(level, value, range) })),
       grouping: {},
     };
     const { ids, cursor } = pageOfIds(mine, criteria, meta);

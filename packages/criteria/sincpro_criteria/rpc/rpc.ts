@@ -1,6 +1,7 @@
 import type { CriteriaLike } from "@sincpro/criteria/criteria/builder";
 import { plain } from "@sincpro/criteria/criteria/builder";
 import type { AnyRecord } from "@sincpro/criteria/criteria/grammar";
+import type { Meta } from "@sincpro/criteria/meta/meta";
 import type { Bucket, Envelope, Page } from "@sincpro/criteria/page/page";
 import { pageFrom } from "@sincpro/criteria/page/page";
 import type { Problem } from "@sincpro/criteria/page/problem";
@@ -32,6 +33,13 @@ export interface RpcSourceOptions {
   context?:
     | Record<string, unknown>
     | (() => Record<string, unknown> | Promise<Record<string, unknown>>);
+
+  /**
+   * The definition of the model the bounded context published — read once from its discovery
+   * document (`metaFromContract`). Every page carries it: an answer says only which version
+   * of the model it is (`model_version`), never the model again.
+   */
+  meta?: Meta;
 }
 
 /** A JSON-RPC error object, exactly as the spec defines it. */
@@ -171,12 +179,16 @@ export function rpcSource<T = AnyRecord>(
   }
 
   return {
-    read: async (criteria, signal) => pageFrom<T>(await call(methods.read, criteria, signal)),
+    read: async (criteria, signal) =>
+      pageFrom<T>(await call(methods.read, criteria, signal), options.meta ?? null),
 
     group:
       methods.group === undefined
         ? undefined
         : async (criteria, signal): Promise<Page<Bucket<T>>> =>
-            pageFrom<Bucket<T>>(await call(methods.group!, criteria, signal)),
+            pageFrom<Bucket<T>>(
+              await call(methods.group!, criteria, signal),
+              options.meta ?? null,
+            ),
   };
 }

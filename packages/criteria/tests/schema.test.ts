@@ -58,13 +58,12 @@ describe("the published schema", () => {
   it("names every part of a criteria and nothing else", () => {
     assert.equal(schema.$ref, "#/$defs/Criteria");
     assert.deepEqual(Object.keys(schema.$defs.Criteria.properties), [
-      "where",
+      "selection",
       "order",
       "pagination",
       "specification",
       "grouping",
       "count",
-      "meta",
     ]);
   });
 

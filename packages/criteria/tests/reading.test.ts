@@ -127,7 +127,7 @@ describe("a reading", () => {
     assert.equal(reading.criteria.pagination?.strategy, undefined, "the cursor is gone");
   });
 
-  it("asks for the definition once and not on every page", async () => {
+  it("holds the definition its source gives, and asks the server nothing for it", async () => {
     const asked: Criteria<Dataset>[] = [];
     const inner = fromRows<Dataset>(rows, { meta: datasetMeta });
     const reading = resource<Dataset>({
@@ -140,24 +140,11 @@ describe("a reading", () => {
     await reading.load();
     await reading.more();
 
-    assert.equal(asked[0]?.meta, undefined, "the first page takes the default, which is on");
-    assert.equal(asked[1]?.meta, false, "the second one already has the definition");
-    assert.equal(reading.meta, datasetMeta, "and keeps it");
-  });
-
-  it("obeys a caller that asked for the definition in so many words", async () => {
-    const asked: Criteria<Dataset>[] = [];
-    const inner = fromRows<Dataset>(rows, { meta: datasetMeta });
-    const reading = resource<Dataset>({
-      read: (written) => {
-        asked.push(written);
-        return inner.read(written);
-      },
-    }).read(criteria<Dataset>().order("dataset_id").limit(2).meta(true));
-
-    await reading.load();
-    await reading.more();
-    assert.equal(asked[1]?.meta, true);
+    assert.ok(
+      asked.every((one) => !("meta" in one)),
+      "a criteria carries no request for it",
+    );
+    assert.equal(reading.meta, datasetMeta, "the source's, kept");
   });
 
   it("reports what the model could not answer, without failing", async () => {

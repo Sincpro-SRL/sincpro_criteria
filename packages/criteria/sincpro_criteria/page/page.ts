@@ -25,7 +25,7 @@ export interface Dropped {
 
 /** Why a condition could not be honoured. The engine's own vocabulary. */
 export type DropReason =
-  "unknown_field" | "unsupported_operator" | "bad_value" | "not_expandable";
+  "unknown_field" | "unsupported_operator" | "bad_value" | "not_expandable" | "not_navigable";
 
 /**
  * One bucket: what its rows share, how many there are, and how to see them.
@@ -111,8 +111,12 @@ export interface Envelope {
   /** How many match in total, capped unless the criteria asked for the exact number. */
   count: Count | null;
 
-  /** What may be filtered, ordered and walked, and with which operators. */
-  entity_meta_data: Meta | null;
+  /**
+   * The version of the model of the records — the fingerprint its published contract carries
+   * (`x-sincpro.version`). What may be filtered, ordered and shown is described once, in the
+   * bounded context's discovery document; another version means: load it again.
+   */
+  model_version: string;
 
   /** Conditions the model could not answer. */
   dropped: Dropped[];
@@ -125,7 +129,7 @@ export interface Envelope {
  * @example
  * type ListDatasets = PaginatedResponse<"datasets", Dataset>;
  * const answer: ListDatasets = await read();
- * answer.datasets; answer.cursor; answer.entity_meta_data;
+ * answer.datasets; answer.cursor; answer.model_version;
  */
 export type PaginatedResponse<Field extends string, T> = { [K in Field]: T[] } & Envelope;
 
@@ -140,8 +144,12 @@ export interface Page<T> {
   rows: T[];
   cursor: string | null;
   count: Count | null;
+  /** The definition of the model: the one the engine answered over in memory, or the one the
+   * source was given (`metaFromContract`); `null` when it was given none. */
   meta: Meta | null;
   dropped: Dropped[];
+  /** The version of the model the server answered with; absent for a page built in memory. */
+  version?: string | null;
 }
 
 /** An answer whose records field is not known in advance. */
@@ -150,26 +158,33 @@ export type AnyPaginatedResponse<T> = Envelope & Record<string, unknown | T[]>;
 const ENVELOPE_FIELDS: ReadonlySet<string> = new Set([
   "cursor",
   "count",
-  "entity_meta_data",
+  "model_version",
   "dropped",
+  "missing",
 ]);
 
 /**
  * The answer a server sent, as the page a reading holds.
  *
  * This is the whole job of a transport adapter: whatever it fetched, handed over in the one
- * shape everything else reads.
+ * shape everything else reads. The definition of the model is not in the answer — it is the
+ * one the bounded context published, read once (`metaFromContract`) and given here.
  *
  * @example
- * const source = { read: async (c) => pageFrom(await getJson("/datasets", { criteria: pack(c) })) };
+ * const meta = metaFromContract(document.components.schemas.Dataset, document.components.schemas);
+ * const source = { read: async (c) => pageFrom(await getJson("/datasets", { criteria: pack(c) }), meta) };
  */
-export function pageFrom<T>(answer: Envelope & Record<string, unknown>): Page<T> {
+export function pageFrom<T>(
+  answer: Envelope & Record<string, unknown>,
+  meta: Meta | null = null,
+): Page<T> {
   return {
     rows: recordsOf<T>(answer),
     cursor: answer.cursor ?? null,
     count: answer.count ?? null,
-    meta: answer.entity_meta_data ?? null,
+    meta,
     dropped: answer.dropped ?? [],
+    version: answer.model_version ?? null,
   };
 }
 

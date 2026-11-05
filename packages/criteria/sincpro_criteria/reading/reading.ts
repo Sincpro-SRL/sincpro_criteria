@@ -34,8 +34,8 @@ export interface ReadingState<T> {
  * **The cursor never appears in the code that uses this.** A list asks for `more()`, a search
  * box calls `refine()`, and the rules that are easy to get wrong live here once:
  *
- * - the definition is asked for on the first page and not on the rest, because it is the same
- *   kilobyte and a half on every page of the same list;
+ * - the definition of the model is the source's: the one it reads in memory, or the one the
+ *   bounded context published (`metaFromContract`); a page says only which version it is;
  * - an answer that arrives after a newer one was asked for is dropped, which is the race
  *   every search box loses;
  * - the request in flight is aborted when another one starts;
@@ -208,7 +208,7 @@ export class Reading<T = AnyRecord> extends Store<ReadingState<T>> {
     this.write({ status: options.append ? "loadingMore" : "loading", error: undefined });
 
     try {
-      const page = await this.source.read(this.asked(criteria), aborter.signal);
+      const page = await this.source.read(criteria, aborter.signal);
       if (ticket !== this.inFlight) return; // a newer read was asked for; this one is stale
       this.keep(page, options.append);
     } catch (error) {
@@ -222,15 +222,6 @@ export class Reading<T = AnyRecord> extends Store<ReadingState<T>> {
       }
       this.write({ status: "failed", error });
     }
-  }
-
-  /**
-   * The criteria as it goes out: with the definition asked for only when it is not already
-   * held, unless the caller asked for it in so many words.
-   */
-  private asked(criteria: Criteria<T>): Criteria<T> {
-    if (criteria.meta !== undefined) return criteria;
-    return this.snapshot().meta === null ? criteria : { ...criteria, meta: false };
   }
 
   private keep(page: Page<T>, append: boolean): void {

@@ -1,6 +1,7 @@
 import type { CriteriaLike } from "@sincpro/criteria/criteria/builder";
 import { plain } from "@sincpro/criteria/criteria/builder";
 import type { AnyRecord } from "@sincpro/criteria/criteria/grammar";
+import type { Meta } from "@sincpro/criteria/meta/meta";
 import type { Bucket, Envelope, Page } from "@sincpro/criteria/page/page";
 import { pageFrom } from "@sincpro/criteria/page/page";
 import type { Problem } from "@sincpro/criteria/page/problem";
@@ -22,6 +23,13 @@ export interface RestSourceOptions {
    * one only when the backend genuinely answers grouping at a separate endpoint.
    */
   groupUrl?: string;
+
+  /**
+   * The definition of the model the bounded context published — read once from its discovery
+   * document (`metaFromContract`). Every page carries it: an answer says only which version
+   * of the model it is (`model_version`), never the model again.
+   */
+  meta?: Meta;
 }
 
 /**
@@ -143,9 +151,12 @@ export function restSource<T = AnyRecord>(
 
   return {
     read: async (criteria, signal) =>
-      pageFrom<T>(await call(urlFor(baseUrl, criteria), signal)),
+      pageFrom<T>(await call(urlFor(baseUrl, criteria), signal), options.meta ?? null),
 
     group: async (criteria, signal): Promise<Page<Bucket<T>>> =>
-      pageFrom<Bucket<T>>(await call(urlFor(groupUrl, criteria), signal)),
+      pageFrom<Bucket<T>>(
+        await call(urlFor(groupUrl, criteria), signal),
+        options.meta ?? null,
+      ),
   };
 }

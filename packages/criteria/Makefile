@@ -6,10 +6,12 @@ PACKAGE := @sincpro/criteria
 FRAMEWORK_REPO ?= ../../../sincpro_framework
 CONTRACT_SRC := $(FRAMEWORK_REPO)/tests/ddd/criteria
 # What the framework writes and this package reads, byte for byte: the cases of what a filter
-# keeps, the cases of what a dynamic value reads to, and the JSON Schema of a criteria.
+# keeps, the cases of what a dynamic value reads to, the JSON Schema of a criteria, and the
+# contracts a model is published as with the definition each reads into.
 CONTRACT := criteria-parity.json:tests/criteria-parity.json \
 	criteria-resolution.json:tests/criteria-resolution.json \
-	criteria.schema.json:criteria.schema.json
+	criteria.schema.json:criteria.schema.json \
+	../metamodel/contract-parity.json:tests/contract-parity.json
 
 typecheck:
 	@npx tsc --noEmit
