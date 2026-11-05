@@ -186,14 +186,19 @@ export interface Condition<T = AnyRecord> {
 }
 
 /**
- * A condition, or a group of them. No `Array.isArray` needed: each shape is recognised by
- * the key it carries.
+ * A condition, or a group of them, or a filter that crosses a relation. No `Array.isArray`
+ * needed: each shape is recognised by the key it carries.
+ *
+ * `{through, selection}` holds when some record the relation `through` holds answers
+ * `selection` — a selection over the related record's own fields: a sale with a line of more
+ * than ten units is `{through: "lines", selection: {field: "qty", operator: ">", value: 10}}`.
  */
 export type Expression<T = AnyRecord> =
   | Condition<T>
   | { all: Expression<T>[] }
   | { any: Expression<T>[] }
-  | { negate: Expression<T> };
+  | { negate: Expression<T> }
+  | { through: string; selection: Expression };
 
 export interface Sort<T = AnyRecord> {
   field: Fields<T>;
@@ -365,18 +370,12 @@ export type CountMode = "none" | "capped" | "exact";
 
 /** Everything a caller is asking for: the filter, the ordering, the page and what to bring. */
 export interface Criteria<T = AnyRecord> {
-  where?: Expression<T>;
+  selection?: Expression<T>;
   order?: Sort<T>[];
   pagination?: Pagination;
   specification?: Specification<T>;
   grouping?: Grouping<T>;
   count?: CountMode;
-
-  /**
-   * Whether the answer carries the model definition. On unless somebody turns it off: a door
-   * that describes itself is worth more than the kilobyte and a half it costs.
-   */
-  meta?: boolean;
 }
 
 /**

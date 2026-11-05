@@ -194,7 +194,6 @@ async function* walk<T>(
     asked = {
       ...asked,
       pagination: { limit, strategy: { token: page.cursor } },
-      meta: false,
     };
   }
 }

@@ -145,7 +145,6 @@ describe("walking every row", () => {
 
     assert.equal(walked.length, 5);
     assert.equal(asked.length, 3, "two full pages and the one that ends the walk");
-    assert.equal(asked[1]?.meta, false);
   });
 });
 

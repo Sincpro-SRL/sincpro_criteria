@@ -83,6 +83,7 @@ function readsBeforeTheRow<T>(filter: Filter<T>): boolean {
   if ("all" in filter) return filter.all.some((part) => readsBeforeTheRow(part));
   if ("any" in filter) return filter.any.some((part) => readsBeforeTheRow(part));
   if ("negate" in filter) return readsBeforeTheRow(filter.negate);
+  if ("through" in filter) return readsBeforeTheRow(filter.selection);
   return mustResolve(filter.value);
 }
 
@@ -113,6 +114,17 @@ function answers<T>(record: T, filter: Filter<T>, meta?: Meta): boolean {
   if ("all" in filter) return filter.all.every((part) => answers(record, part, meta));
   if ("any" in filter) return filter.any.some((part) => answers(record, part, meta));
   if ("negate" in filter) return !answers(record, filter.negate, meta);
+  if ("through" in filter) {
+    // Some record the relation holds answers the selection — none held, none does.
+    const held = (record as AnyRecord)[filter.through];
+    const related = Array.isArray(held)
+      ? held
+      : held === null || held === undefined
+        ? []
+        : [held];
+    const definition = meta?.fields[filter.through]?.definition ?? undefined;
+    return related.some((one) => answers(one as AnyRecord, filter.selection, definition));
+  }
   return holdsOver(record as AnyRecord, filter.field, filter.operator, filter.value, meta);
 }
 

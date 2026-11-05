@@ -35,7 +35,8 @@ export type Filter<T = AnyRecord> =
   | Condition<T>
   | { all: Filter<T>[] }
   | { any: Filter<T>[] }
-  | { negate: Filter<T> };
+  | { negate: Filter<T> }
+  | { through: string; selection: Filter };
 
 /** Whether a written filter is a triple rather than an object. */
 export function isTriple<T>(filter: Filter<T>): filter is Triple<T> {
@@ -68,6 +69,9 @@ export function readFilter<T = AnyRecord>(filter: Filter<T>): Expression<T> {
   if ("all" in filter) return { all: filter.all.map((part) => readFilter(part)) };
   if ("any" in filter) return { any: filter.any.map((part) => readFilter(part)) };
   if ("negate" in filter) return { negate: readFilter(filter.negate) };
+  if ("through" in filter) {
+    return { through: filter.through, selection: readFilter(filter.selection) };
+  }
   return filter;
 }
 

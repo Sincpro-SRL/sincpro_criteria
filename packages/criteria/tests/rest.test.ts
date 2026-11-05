@@ -11,7 +11,7 @@ const OK_PAGE = {
   datasets: [{ dataset_id: "d1", name: "labs.csv" }],
   cursor: null,
   count: { value: 1, exact: true },
-  entity_meta_data: datasetMeta,
+  model_version: "3f9c",
   dropped: [],
 };
 
@@ -19,7 +19,7 @@ const OK_GROUPS = {
   groups: [{ field: "encoding", value: "utf-8", count: 5, criteria: {} }],
   cursor: null,
   count: null,
-  entity_meta_data: null,
+  model_version: "3f9c",
   dropped: [],
 };
 
@@ -36,30 +36,31 @@ describe("restSource — a Source that wraps fetch around pack/pageFrom", () => 
   it("reads a page from GET {baseUrl}?criteria=...", async () => {
     const { fetchStub, calls } = stub(200, OK_PAGE);
     const datasets = resource<Dataset>(
-      restSource<Dataset>("/datasets", { fetch: fetchStub }),
+      restSource<Dataset>("/datasets", { fetch: fetchStub, meta: datasetMeta }),
     );
 
     const page = await datasets.page(criteria<Dataset>().where(["encoding", "=", "utf-8"]));
 
     assert.equal(page.rows.length, 1);
     assert.equal(page.count?.value, 1);
-    assert.equal(page.meta?.aggregate, "Dataset");
+    assert.equal(page.meta?.aggregate, "Dataset", "the definition the source was given");
+    assert.equal(page.version, "3f9c", "the version the server answered with");
     assert.equal(calls.length, 1);
 
     const url = new URL(calls[0]!.url, "http://x");
     assert.equal(url.pathname, "/datasets");
     const sent = unpack(url.searchParams.get("criteria")!);
-    assert.deepEqual(sent.where, { field: "encoding", operator: "=", value: "utf-8" });
+    assert.deepEqual(sent.selection, { field: "encoding", operator: "=", value: "utf-8" });
   });
 
   it("sends the criteria as plain JSON, the format the framework's REST route reads", async () => {
     const { fetchStub, calls } = stub(200, OK_PAGE);
     const datasets = restSource<Dataset>("/datasets", { fetch: fetchStub });
 
-    await datasets.read({ where: { field: "encoding", operator: "=", value: "utf-8" } });
+    await datasets.read({ selection: { field: "encoding", operator: "=", value: "utf-8" } });
 
     const raw = new URL(calls[0]!.url, "http://x").searchParams.get("criteria")!;
-    assert.deepEqual(JSON.parse(raw).where, {
+    assert.deepEqual(JSON.parse(raw).selection, {
       field: "encoding",
       operator: "=",
       value: "utf-8",

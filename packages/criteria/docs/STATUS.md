@@ -301,6 +301,18 @@ Re-verified end to end after both fixes: `make update-version VERSION=0.1.1` and
 `0.1.0` both round-tripped clean, `make typecheck && make test && make lint && make doctor &&
 make check-parity && make build` all still pass (268 + 9 tests, 0 fail).
 
+## Done: the published contract, `selection`, `through` (framework #236, metamodel)
+
+Done 2026-11-04 against the framework's `feat_metamodel` branch. A criteria's filter is
+`selection`; the `meta` flag is gone — an answer carries `model_version`, never the model, and the
+definition is read once from the contract the bounded context publishes (`metaFromContract`,
+`versionOf`, handed to `restSource`/`rpcSource` as `meta`). `{through, selection}` crosses a
+relation, answered by `matches` and checked by `validate` (`not_navigable`). `FieldMeta` reads
+what the contract adds: `widget`, `affects`, `judged_by`, `holds`, `navigable`, `total`, the
+`uuid` type. Held by `tests/contract.test.ts` (`contract-parity.json`, written by the framework)
+and the `crossing` cases of `criteria-parity.json`. `contract-parity.json` is a fourth fixture copied byte for byte, listed
+in `CONTRACT` and in `.prettierignore` like the other three.
+
 ## Done: follow sincpro_framework rename model_meta_data → entity_meta_data
 
 Done 2026-10-12, released together with the framework's dynamic values. `Envelope`, `pageFrom`,

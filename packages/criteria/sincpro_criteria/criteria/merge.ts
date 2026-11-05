@@ -58,8 +58,8 @@ export function narrowedBy<T = AnyRecord>(
  * want; `merge<Dataset>(a, b)` and `builder.merge(other)` keep the field names checked.
  *
  * @example
- * merge({where: a, pagination: {limit: 20}}, {where: b});
- * // {where: {all: [a, b]}, pagination: {limit: 20}}
+ * merge({selection: a, pagination: {limit: 20}}, {selection: b});
+ * // {selection: {all: [a, b]}, pagination: {limit: 20}}
  *
  * Two criteria, one.
  *
@@ -83,8 +83,8 @@ export function merge<T = AnyRecord>(
 ): Criteria<T> {
   const merged: Criteria<T> = {};
 
-  const where = combined<T>(mine.where, theirs.where);
-  if (where !== undefined) merged.where = where;
+  const selection = combined<T>(mine.selection, theirs.selection);
+  if (selection !== undefined) merged.selection = selection;
 
   const order = theirs.order ?? mine.order;
   if (order !== undefined) merged.order = order;
@@ -106,12 +106,6 @@ export function merge<T = AnyRecord>(
   // nothing about counting does not overrule one that did.
   const count = theirs.count ?? mine.count;
   if (count !== undefined) merged.count = count;
-
-  // AND, not OR: with the definition travelling by default, an OR would mean nobody could
-  // ever turn it off — the more specific criteria would always be overruled by the other's
-  // default.
-  if (mine.meta === false || theirs.meta === false) merged.meta = false;
-  else if (mine.meta !== undefined || theirs.meta !== undefined) merged.meta = true;
 
   return merged;
 }

@@ -107,7 +107,7 @@ describe("writing a dynamic value", () => {
       ["total", ">", dynamic.field<Invoice>("credit_limit")],
     );
 
-    assert.deepEqual(q.value.where, {
+    assert.deepEqual(q.value.selection, {
       all: [
         { field: "due", operator: "<", value: { $: "today" } },
         { field: "owner_id", operator: "=", value: { $: "context", key: "user_id" } },
@@ -279,7 +279,7 @@ describe("checking one against the model", () => {
     );
 
     assert.deepEqual(dropped, []);
-    assert.ok(kept.where);
+    assert.ok(kept.selection);
   });
 
   it("keeps a column against another of the same type", () => {
@@ -298,7 +298,7 @@ describe("checking one against the model", () => {
     );
 
     assert.deepEqual(dropped, [{ field: "nowhere", reason: "unknown_field" }]);
-    assert.equal(kept.where, undefined);
+    assert.equal(kept.selection, undefined);
   });
 
   it("drops a column against another of another type, or with an operator that does not compare", () => {

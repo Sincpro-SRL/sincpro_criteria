@@ -30,7 +30,7 @@ export function answer<T = AnyRecord>(
   const { criteria, dropped, refused } = validate<T>(plain(written), meta);
   if (refused.length > 0) throw new InvalidCriteria(refused[0]!.message);
 
-  const matching = filtered(rows, criteria.where, meta);
+  const matching = filtered(rows, criteria.selection, meta);
   const sorts = orderingFor(criteria, meta);
   const page = paginate(sortRows(matching, sorts, meta), criteria, sorts, meta);
 
@@ -40,7 +40,7 @@ export function answer<T = AnyRecord>(
     // In memory there is nothing to cap: the rows are all here, so the count is exact
     // whatever the criteria was willing to settle for.
     count: criteria.count === "none" ? null : { value: matching.length, exact: true },
-    meta: criteria.meta === false ? null : meta,
+    meta,
     dropped,
   };
 }
@@ -62,12 +62,12 @@ export function answerGroups<T = AnyRecord>(
   const { criteria, dropped, refused } = validate<T>(plain(written), meta);
   if (refused.length > 0) throw new InvalidCriteria(refused[0]!.message);
 
-  const matching = filtered(rows, criteria.where, meta);
+  const matching = filtered(rows, criteria.selection, meta);
   return {
     rows: bucketsOf(matching, criteria, meta),
     cursor: null,
     count: criteria.count === "none" ? null : { value: matching.length, exact: true },
-    meta: criteria.meta === false ? null : meta,
+    meta,
     dropped,
   };
 }

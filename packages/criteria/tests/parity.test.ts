@@ -24,13 +24,14 @@ import { filtered } from "@sincpro/criteria/engine";
 
 interface Case {
   name: string;
-  where: unknown;
+  selection: unknown;
   expected: string[];
 }
 
 interface Fixtures {
   rows: Record<string, unknown>[];
   cases: Case[];
+  crossing: { rows: Record<string, unknown>[]; cases: Case[] };
 }
 
 const fixtures = JSON.parse(
@@ -40,9 +41,19 @@ const fixtures = JSON.parse(
 describe("what the engine answers, against what the Python suite says it must", () => {
   for (const one of fixtures.cases) {
     it(one.name, () => {
-      const where = one.where === null ? undefined : readExpression(one.where);
+      const selection = one.selection === null ? undefined : readExpression(one.selection);
       assert.deepEqual(
-        filtered(fixtures.rows, where).map((row) => row.id),
+        filtered(fixtures.rows, selection).map((row) => row.id),
+        one.expected,
+      );
+    });
+  }
+
+  for (const one of fixtures.crossing.cases) {
+    it(`crossing a relation: ${one.name}`, () => {
+      const selection = one.selection === null ? undefined : readExpression(one.selection);
+      assert.deepEqual(
+        filtered(fixtures.crossing.rows, selection).map((row) => row.id),
         one.expected,
       );
     });
@@ -51,8 +62,8 @@ describe("what the engine answers, against what the Python suite says it must", 
   it("covers every operator this package declares", () => {
     const asked = new Set(
       fixtures.cases
-        .filter((one) => one.where !== null)
-        .flatMap((one) => conditionsOf(readExpression(one.where) as Expression))
+        .filter((one) => one.selection !== null)
+        .flatMap((one) => conditionsOf(readExpression(one.selection) as Expression))
         .map((one) => one.operator),
     );
 

@@ -73,7 +73,7 @@ function counts(levels: Level<Bill>[], where?: unknown): Record<string, number> 
   const grouped = q.groupBy(...levels);
   const page = answerGroups(
     bills,
-    where === undefined ? grouped : { ...grouped.value, where: where as never },
+    where === undefined ? grouped : { ...grouped.value, selection: where as never },
     meta,
   );
   return Object.fromEntries(page.rows.map((one) => [String(one.value), one.count]));
@@ -127,7 +127,7 @@ describe("the part of a date", () => {
       meta,
     );
     assert.ok(page.rows.every((one) => one.openable === false));
-    assert.ok(page.rows.every((one) => one.criteria.where === undefined));
+    assert.ok(page.rows.every((one) => one.criteria.selection === undefined));
   });
 
   it("is refused with a page of ids per group, because there are no rows to page", () => {

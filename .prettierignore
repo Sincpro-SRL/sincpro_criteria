@@ -6,3 +6,4 @@ node_modules/
 packages/criteria/tests/criteria-parity.json
 packages/criteria/tests/criteria-resolution.json
 packages/criteria/criteria.schema.json
+packages/criteria/tests/contract-parity.json

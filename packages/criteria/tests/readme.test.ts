@@ -63,7 +63,9 @@ const rows: Dataset[] = [
 ];
 
 /** The five lines a REST adapter is, with the fetch left out. */
-const datasets = resource<Dataset>(async (q) => pageFrom<Dataset>(await served(pack(q))));
+const datasets = resource<Dataset>(async (q) =>
+  pageFrom<Dataset>(await served(pack(q)), datasetMeta),
+);
 
 /** What a server answers: the records under their own name, and the envelope around them. */
 async function served(packed: string) {
@@ -74,7 +76,7 @@ async function served(packed: string) {
     datasets: page.rows,
     cursor: page.cursor,
     count: page.count,
-    entity_meta_data: page.meta,
+    model_version: "v1",
     dropped: page.dropped,
   };
 }
@@ -99,13 +101,13 @@ describe("README · a filter that reads left to right", () => {
       where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
       where.negate(["name", "like", "draft"]),
     );
-    assert.equal(conditionsOf(q.value.where).length, 5);
+    assert.equal(conditionsOf(q.value.selection).length, 5);
   });
 
   it("is a value a function can return", () => {
     const mine = (): Filter<Dataset> =>
       where.any(["tags", "contains", "raw"], ["producer_id", "is null", true])!;
-    assert.ok(criteria<Dataset>().where(mine()).value.where);
+    assert.ok(criteria<Dataset>().where(mine()).value.selection);
   });
 });
 
@@ -170,14 +172,14 @@ describe("README · a saved reading", () => {
 
     // go on building over it
     const narrowed = criteria<Dataset>(saved).where(["row_count", ">", 1000]);
-    assert.equal(conditionsOf(narrowed.value.where).length, 2);
+    assert.equal(conditionsOf(narrowed.value.selection).length, 2);
 
     // cross it with what the screen always adds
     assert.ok(merge(saved, { count: "exact" }).count === "exact");
 
     // draw its chips
     assert.deepEqual(
-      conditionsOf(saved.where).map((one) => explainFilter(one, { meta: datasetMeta })),
+      conditionsOf(saved.selection).map((one) => explainFilter(one, { meta: datasetMeta })),
       ['Encoding = "utf-8"'],
     );
 

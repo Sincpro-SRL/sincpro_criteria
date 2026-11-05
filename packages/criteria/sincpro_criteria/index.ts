@@ -81,6 +81,13 @@ export { formatOrder, parseOrder } from "@sincpro/criteria/criteria/order";
 export { pack, readCriteria, unpack } from "@sincpro/criteria/criteria/pack";
 
 /* ── what the model says about itself ───────────────────────────────────────────────── */
+export type {
+  Contract,
+  ContractProperty,
+  EntityVocabulary,
+  PropertyVocabulary,
+} from "@sincpro/criteria/meta/contract";
+export { metaFromContract, versionOf } from "@sincpro/criteria/meta/contract";
 export type { DescribeOptions } from "@sincpro/criteria/meta/describe";
 export { describeRows } from "@sincpro/criteria/meta/describe";
 export type {
@@ -150,6 +157,8 @@ export type { Awaitable, LiveChannel, Source } from "@sincpro/criteria/source/so
 
 /* ── the two the engine lends: narrowing a list already in hand ─────────────────────── */
 export { filtered, matches } from "@sincpro/criteria/engine/evaluate";
+export type { Formula } from "@sincpro/criteria/engine/formula";
+export { valueOf } from "@sincpro/criteria/engine/formula";
 export type { Axes } from "@sincpro/criteria/engine/pivot";
 export type { ResolutionContext } from "@sincpro/criteria/engine/resolve";
 export { hasDynamicValues, resolve } from "@sincpro/criteria/engine/resolve";

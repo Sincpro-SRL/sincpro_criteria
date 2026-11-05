@@ -46,8 +46,8 @@ export function explain<T = AnyRecord>(
 
   if (meta !== undefined) parts.push(nameOf(meta, locale));
 
-  if (criteria.where !== undefined) {
-    parts.push(`where ${sentenceOf(criteria.where as Expression, options)}`);
+  if (criteria.selection !== undefined) {
+    parts.push(`where ${sentenceOf(criteria.selection as Expression, options)}`);
   }
 
   if (criteria.order?.length) {
@@ -125,6 +125,13 @@ function sentenceOf(expression: Expression, options: ExplainOptions): string {
   }
   if (isAny(expression)) {
     return expression.any.map((part) => grouped(part, options)).join(" or ");
+  }
+  if ("through" in expression) {
+    const related = options.meta?.fields[expression.through]?.definition ?? undefined;
+    return `some ${label(expression.through, options)} with ${grouped(expression.selection, {
+      ...options,
+      meta: related,
+    })}`;
   }
   return `not ${grouped(expression.negate, options)}`;
 }

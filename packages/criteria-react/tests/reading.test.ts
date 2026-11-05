@@ -72,7 +72,8 @@ describe("useReading", () => {
 
   it("refine() asks again and reports the new rows", async () => {
     const widgets = resource<Widget>(async (asked) => {
-      const id = asked.where && "value" in asked.where ? String(asked.where.value) : "1";
+      const id =
+        asked.selection && "value" in asked.selection ? String(asked.selection.value) : "1";
       return pageOf([{ id, name: `widget-${id}` }]);
     });
 

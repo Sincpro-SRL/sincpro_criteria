@@ -26,7 +26,7 @@ interface Case {
   week_starts_on: number;
   context: Record<string, unknown>;
   params: Record<string, unknown>;
-  where: unknown;
+  selection: unknown;
   resolved: unknown;
 }
 
@@ -74,7 +74,7 @@ function same(actual: unknown, expected: unknown, path = "$"): void {
 describe("what a dynamic value reads to, against what the Python suite says it must", () => {
   for (const one of contract.cases) {
     it(one.name, () => {
-      const run = resolve(readExpression(one.where), {
+      const run = resolve(readExpression(one.selection), {
         now: new Date(one.now),
         timeZone: one.timezone,
         weekStartsOn: one.week_starts_on,
@@ -87,7 +87,7 @@ describe("what a dynamic value reads to, against what the Python suite says it m
   }
 
   it("covers every kind of dynamic value this package declares", () => {
-    const asked = JSON.stringify(contract.cases.map((one) => one.where));
+    const asked = JSON.stringify(contract.cases.map((one) => one.selection));
     for (const kind of ["today", "now", "period", "context", "param", "field"]) {
       assert.ok(asked.includes(`"$":"${kind}"`), kind);
     }

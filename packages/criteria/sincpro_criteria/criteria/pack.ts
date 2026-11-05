@@ -64,8 +64,8 @@ export function readCriteria(value: unknown): Criteria {
   const written = value as Record<string, unknown>;
   const criteria: Criteria = {};
 
-  if (written.where !== undefined && written.where !== null) {
-    criteria.where = readExpression(written.where);
+  if (written.selection !== undefined && written.selection !== null) {
+    criteria.selection = readExpression(written.selection);
   }
   if (written.order !== undefined && written.order !== null) {
     criteria.order = readOrder(written.order);
@@ -87,12 +87,6 @@ export function readCriteria(value: unknown): Criteria {
       );
     }
     criteria.count = count;
-  }
-  if (written.meta !== undefined) {
-    if (typeof written.meta !== "boolean") {
-      throw new InvalidCriteria("'meta' is a boolean");
-    }
-    criteria.meta = written.meta;
   }
   return criteria;
 }

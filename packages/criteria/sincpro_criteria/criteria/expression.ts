@@ -24,8 +24,16 @@ export function isNegate<T>(
   return "negate" in expression;
 }
 
+/** Whether this node crosses a relation: some related record answers its selection. */
+export function isThrough<T>(
+  expression: Expression<T>,
+): expression is { through: string; selection: Expression } {
+  return "through" in expression;
+}
+
 /**
- * Every leaf of a tree, in reading order.
+ * Every leaf of a tree, in reading order — of this record's own fields: a selection that
+ * crosses a relation reads the related record's, and is left out.
  *
  * What a screen looks at to draw the chips of a saved filter without understanding the shape
  * of the tree it was saved as.
@@ -40,6 +48,7 @@ export function conditionsOf<T = AnyRecord>(
   if (isCondition(expression)) return [expression];
   if (isAll(expression)) return expression.all.flatMap((part) => conditionsOf(part));
   if (isAny(expression)) return expression.any.flatMap((part) => conditionsOf(part));
+  if (isThrough(expression)) return [];
   return conditionsOf(expression.negate);
 }
 
@@ -74,6 +83,17 @@ export function readExpression(value: unknown): Expression {
   if ("any" in written) return { any: readParts(written.any, "any") };
   if ("all" in written) return { all: readParts(written.all, "all") };
   if ("negate" in written) return { negate: readExpression(written.negate) };
+  if ("through" in written) {
+    if (typeof written.through !== "string") {
+      throw new InvalidCriteria("'through' is the name of a relation, a string");
+    }
+    if (!("selection" in written)) {
+      throw new InvalidCriteria(
+        `the filter through '${written.through}' carries no 'selection' over the related record`,
+      );
+    }
+    return { through: written.through, selection: readExpression(written.selection) };
+  }
 
   if ("field" in written) {
     if (typeof written.field !== "string") {
@@ -94,7 +114,8 @@ export function readExpression(value: unknown): Expression {
   }
 
   throw new InvalidCriteria(
-    "a filter is {'field', 'operator', 'value'} or an object with 'all', 'any' or 'negate'; " +
+    "a filter is {'field', 'operator', 'value'}, an object with 'all', 'any' or 'negate', or " +
+      "{'through', 'selection'}; " +
       `got {${Object.keys(written).sort().join(", ")}}`,
   );
 }

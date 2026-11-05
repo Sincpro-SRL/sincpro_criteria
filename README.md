@@ -35,7 +35,7 @@ The reference for the whole grammar — merge, saved readings, what gets dropped
 
 The examples below are the reads an accounting service actually publishes. `Invoice` and
 `InvoiceLine` are two models, so they are two queries. Field names are the ones
-`entity_meta_data` publishes. A relation is expanded in `specification`; the filter names the
+entity's published contract names. A relation is expanded in `specification`; the filter names the
 key (`partner_id`), never the relation (`partner`).
 
 ```ts
@@ -298,7 +298,7 @@ try {
 ```
 
 What leaves the browser for the list. `params.criteria` is `plain(postedSales)` and `context`
-rides beside `params`, not inside the criteria. The `where` and the `specification` here are
+rides beside `params`, not inside the criteria. The `selection` and the `specification` here are
 cut down to the shape; the call sends every condition and every nested field from the invoice
 section above:
 
@@ -309,7 +309,7 @@ section above:
   "method": "accounting.list_invoices",
   "params": {
     "criteria": {
-      "where": {
+      "selection": {
         "all": [
           { "field": "move_type", "operator": "=", "value": "out_invoice" },
           { "field": "state", "operator": "=", "value": "posted" }
@@ -320,7 +320,11 @@ section above:
       "specification": {
         "partner": { "specification": { "name": {} } },
         "lines": {
-          "where": { "field": "analytic_account_id", "operator": "is null", "value": false },
+          "selection": {
+            "field": "analytic_account_id",
+            "operator": "is null",
+            "value": false
+          },
           "pagination": { "limit": 20 }
         }
       }
@@ -338,7 +342,7 @@ A function is called on every request, so a value that changes (the current tena
 current.
 
 The answer is the same paginated DTO a REST route returns for that command. `pageFrom` reads
-`rows`, `cursor`, `count`, `entity_meta_data` and `dropped` out of it.
+`rows`, `cursor`, `count`, `model_version` and `dropped` out of it.
 
 The next page is the cursor the previous page handed back. A reading holds that for you:
 
@@ -459,13 +463,14 @@ the service you call
   └── sincpro_framework          defines Criteria, validates it, answers the page
 ```
 
-| This repository                           | The framework                                                    |
-| ----------------------------------------- | ---------------------------------------------------------------- |
-| `criteria()`, `where`, `plain`, `merge`   | `ddd/criteria` — the object and the merge law                    |
-| `@sincpro/criteria/engine`                | `ddd/criteria/evaluate.py` — the in-memory specification         |
-| `pageFrom`, `entity_meta_data`, `dropped` | the paginated answer                                             |
-| `@sincpro/criteria/rpc`                   | `POST /rpc`, method `{namespace}.{operation}`, `params.criteria` |
-| `@sincpro/criteria/rest`                  | the REST entrypoint's `criteria` query parameter                 |
+| This repository                         | The framework                                                    |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `criteria()`, `where`, `plain`, `merge` | `ddd/criteria` — the object and the merge law                    |
+| `@sincpro/criteria/engine`              | `ddd/criteria/evaluate.py` — the in-memory specification         |
+| `pageFrom`, `model_version`, `dropped`  | the paginated answer                                             |
+| `metaFromContract`, `versionOf`         | `ddd/metamodel` — the contract a model is published as           |
+| `@sincpro/criteria/rpc`                 | `POST /rpc`, method `{namespace}.{operation}`, `params.criteria` |
+| `@sincpro/criteria/rest`                | the REST entrypoint's `criteria` query parameter                 |
 
 The grammar is defined in the framework. This repo mirrors it, and a parity suite runs the
 same cases through both in-memory engines. The language as the engine writes it is
