@@ -39,6 +39,27 @@ describe("a published contract, read into the engine's definition", () => {
     });
   }
 
+  it("keeps whose record a key names, and keeps the key a scalar", () => {
+    // As sincpro_framework publishes `project_id: EntityID[Project]` (its own context) and
+    // `tenant_id: EntityID[Tenant] | None` (a `Reference` to another context).
+    const issue = metaFromContract({
+      type: "object",
+      properties: {
+        project_id: { type: "string", "x-sincpro": { type: "text", relation: "Project" } },
+        tenant_id: {
+          anyOf: [{ type: "string" }, { type: "null" }],
+          "x-sincpro": { type: "text", relation: "auth.Tenant" },
+        },
+      },
+    } as Contract);
+
+    assert.equal(issue.fields.project_id!.relation, "Project");
+    assert.equal(issue.fields.project_id!.kind, "scalar");
+    assert.equal(issue.fields.tenant_id!.relation, "auth.Tenant");
+    assert.equal(issue.fields.tenant_id!.kind, "scalar");
+    assert.equal(issue.fields.tenant_id!.nullable, true);
+  });
+
   it("answers the version the contract carries, which a page's version is compared with", () => {
     const order = fixtures.cases.find((one) => one.name === "Order")!;
     assert.equal(versionOf(order.contract), order.contract["x-sincpro"]?.version);

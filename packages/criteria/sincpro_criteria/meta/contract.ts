@@ -85,11 +85,20 @@ const RELATIONAL: ReadonlySet<FieldType> = new Set<FieldType>([
   "many2many",
 ]);
 
-/** The schema of an embedded value: the property itself, its items, or the non-null branch. */
-function shapeOf(property: ContractProperty): Contract | undefined {
+/**
+ * The schema of an embedded value: the property itself, its items, or the non-null branch —
+ * written in place, or a `$ref` to the shape the contract names once under `$defs`, by its
+ * class (`#/$defs/OrderLine`), looked up in `shapes`.
+ */
+function shapeOf(
+  property: ContractProperty,
+  shapes: Readonly<Record<string, Contract>>,
+): Contract | undefined {
   const held = property.anyOf?.find((one) => one.type !== "null") ?? property;
   const shape = (held.type === "array" ? held.items : held) as ContractProperty | undefined;
-  return shape?.properties === undefined ? undefined : (shape as unknown as Contract);
+  const pointed =
+    typeof shape?.$ref === "string" ? shapes[shape.$ref.split("/").pop() ?? ""] : shape;
+  return pointed?.properties === undefined ? undefined : (pointed as unknown as Contract);
 }
 
 /** The choices of a property, wherever JSON Schema wrote them: on it or in its non-null branch. */
@@ -98,17 +107,19 @@ function enumOf(property: ContractProperty): unknown[] | undefined {
 }
 
 /** One field of the definition, out of one property of the contract and its vocabulary; a
- * relation's definition is the contract of what it points at, when `related` holds it. */
+ * relation's definition is the contract of what it points at, when `related` holds it; an
+ * embedded value's, the shape it holds — in place, or named in `shapes`. */
 function fieldOf(
   property: ContractProperty,
   required: boolean,
   related: Readonly<Record<string, Contract>>,
+  shapes: Readonly<Record<string, Contract>>,
 ): FieldMeta {
   const said = property["x-sincpro"] ?? ({ type: "unknown" } as PropertyVocabulary);
   const type: FieldType = FIELD_TYPES.includes(said.type) ? said.type : "unknown";
   const kind: FieldKind =
     type === "embedded" ? "embedded" : RELATIONAL.has(type) ? "relation" : "scalar";
-  const shape = type === "embedded" ? shapeOf(property) : undefined;
+  const shape = type === "embedded" ? shapeOf(property, shapes) : undefined;
   const choices = enumOf(property);
   const field: FieldMeta = {
     ...said,
@@ -120,7 +131,7 @@ function fieldOf(
     required: required || undefined,
   };
   if (choices !== undefined) field.choices = choices;
-  if (shape !== undefined) field.definition = metaFromContract(shape);
+  if (shape !== undefined) field.definition = metaFromContract(shape, related, shapes);
   const pointed = kind === "relation" && said.relation ? related[said.relation] : undefined;
   if (pointed?.properties !== undefined) field.definition = metaFromContract(pointed);
   if (field.required === undefined) delete field.required;
@@ -139,6 +150,10 @@ function fieldOf(
  * contract of what it points at (`definition`), one level deep: what a line editor and a
  * many2one's display are built from.
  *
+ * A value the record holds inside (`embedded`) is described by its shape, written in place or
+ * named once by its class under the contract's `$defs` (`#/$defs/OrderLine`) — found there,
+ * or among `related`; `shapes` is what a nested shape reads its own by, and a caller leaves it.
+ *
  * @example
  * const document = await (await fetch("/openapi.json")).json();
  * const sales = metaFromContract(document.components.schemas.Sale);
@@ -148,12 +163,13 @@ function fieldOf(
 export function metaFromContract(
   contract: Contract,
   related: Readonly<Record<string, Contract>> = {},
+  shapes: Readonly<Record<string, Contract>> = { ...related, ...(contract.$defs ?? {}) },
 ): Meta {
   const entity = contract["x-sincpro"];
   const required = new Set(contract.required ?? []);
   const fields: Record<string, FieldMeta> = {};
   for (const [name, property] of Object.entries(contract.properties)) {
-    fields[name] = fieldOf(property, required.has(name), related);
+    fields[name] = fieldOf(property, required.has(name), related, shapes);
   }
   const meta: Meta = {
     aggregate: entity?.entity ?? contract.title ?? "",

@@ -227,7 +227,12 @@ export interface FieldMeta {
   /** Several of them: a `one2many`, a `many2many`, or a list of embedded values. */
   many?: boolean;
 
-  /** For a relational field, the aggregate on the other side, by name. */
+  /**
+   * For a relational field, the aggregate on the other side, by name. For a key — a scalar
+   * typed `EntityID[Project]` on the server —, the entity whose record it names: `Project` in
+   * its own context, `auth.Tenant` in another's. A key stays `kind: "scalar"`: it holds the
+   * record's id, never the record.
+   */
   relation?: string | null;
 
   /**
@@ -291,8 +296,8 @@ export interface Meta {
 
   /**
    * What a read of one record brings when it asks for the detail: a criteria as the engine
-   * writes it, nulls included. Read it with `readCriteria(meta.detail)` before merging or
-   * sending it.
+   * writes it, with only what it says — a part left at its default is absent. Read it with
+   * `readCriteria(meta.detail)` before merging or sending it.
    */
   detail?: Record<string, unknown> | null;
 
