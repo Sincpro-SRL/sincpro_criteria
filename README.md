@@ -163,8 +163,8 @@ const shown = derive(buckets, {
 });
 ```
 
-On the wire the grouping is one object. `where` still filters the lines; `where_measures`
-filters the buckets:
+On the wire the grouping is one object. `selection` filters the lines; `where_measures`
+filters the buckets. `.where()` is how a criteria is written, and what it sets is `selection`:
 
 ```json
 {

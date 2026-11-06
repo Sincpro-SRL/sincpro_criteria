@@ -86,9 +86,9 @@ function usePermissionedAccounts(resource: Resource<Account>, typed: Expression<
 ```
 
 `asked` is what actually reaches the network — the user's filter narrows the permission, it
-can never widen past it, because `where` always merges by AND. See the core README's "The law
+can never widen past it, because `selection` always merges by AND. See the core README's "The law
 for merging two of them" for what merge does with the rest of a criteria (order, pagination,
-grouping), not just `where`.
+grouping), not just `selection`. `.where()` is the method that writes that field.
 
 ## Development
 

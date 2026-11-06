@@ -306,7 +306,7 @@ JSON-RPC error object (`code`, `message`, `data`). The method names are applicat
 none of it is transport-specific.** Both `restSource` and `rpcSource` send whatever `Criteria<T>`
 they are handed through `pack`/`plain`; the criteria from "The law for merging two of them"
 above travels identically whether `read()` ends up calling `restSource` or `rpcSource` — the
-addon does not know or care how the `where` tree is shaped.
+addon does not know or care how the `selection` tree is shaped.
 
 ## A reading
 

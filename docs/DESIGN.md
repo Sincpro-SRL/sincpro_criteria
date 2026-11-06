@@ -147,7 +147,7 @@ interface LiveChannel {
 }
 ```
 
-`Reading` would gain an opt-in `follow()`: open the channel, call `reload()` on invalidation,
+`Reading.follow()` is that opt-in: it opens the channel and calls `reload()` on invalidation,
 debounced so ten changes in a row cause one refetch and not ten. Nothing about `LiveChannel`
 names a transport — a `WebSocket`, an `EventSource`, a Postgres `LISTEN/NOTIFY` forwarded
 through anything, or a consumer's own event bus (`sincpro_mobile`'s `mitt`-based one already
@@ -157,8 +157,9 @@ this, and nobody who already solved live updates their own way has to adopt it.
 **Not this package's decision alone.** The thing that emits an invalidation is
 `sincpro_framework` (Python) — the message shape (per aggregate? per criteria? what counts as
 "reason") and the channel it rides on are a cross-repo protocol question, the same way the
-wire envelope (`pack`/`pageFrom`) is defined in Python and mirrored here. This section is the
-proposal to bring to that repo, not a shipped feature yet.
+wire envelope (`pack`/`pageFrom`) is defined in Python and mirrored here. The seam
+(`Source.live`, `LiveChannel`, `Reading.follow`) is in this package. A concrete transport
+against the framework is not, until that protocol is agreed.
 
 ## What this means for the roadmap in `packages/criteria/docs/STATUS.md`
 

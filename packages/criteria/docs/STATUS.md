@@ -1,45 +1,29 @@
 # Status — read this first if you are resuming this work
 
-This is a handoff note, not permanent documentation. It exists so a new session (human or
-agent) can pick this repository back up without re-deriving decisions that were already made
-and verified. The README and `AGENTS.md` are the permanent docs; this file is disposable once
-everything below is committed, PR'd and merged — delete it then.
+This is a handoff note, not permanent documentation. The README and `AGENTS.md` are the
+permanent docs. What follows the vocabulary table is the session log that got the package to
+its published shape; trust the table and the "Done" sections at the bottom over the older
+paragraphs when they disagree.
 
-## One paragraph
+## Where it stands
 
-`@sincpro/criteria` mirrors the Sincpro engine's read grammar (`sincpro_framework/ddd/`) in
-TypeScript, with zero dependencies. This session took it from "the grammar exists" to "the
-vocabulary matches the engine exactly, in Python, in the wire JSON and in TypeScript — plus an
-`analysis` addon for charts/dashboards, and a parity suite that keeps the two engines honest."
-The framework side is **already merged** (`sincpro_framework` PR #105, on `main`). This repo
-is **not yet committed** — waiting for a branch + PR. (Grew from 46 to 51 files mid-session for
-the `criteria-rest` addon, see roadmap #2.)
+`@sincpro/criteria` 1.1.0 is published. It mirrors `sincpro_framework/ddd/criteria` in
+TypeScript, with zero dependencies. The filter on the object and on the wire is `selection`.
+`.where(...)` is only how a criteria is written: it sets `selection`. Python's field is
+`Criteria.selection`. There is no `Criteria.where`.
 
-**The repo became a yarn workspaces monorepo mid-session, after that.** This package now lives
-at `packages/criteria` (moved with plain `mv`, not `git mv`, since nothing is committed yet —
-there is nothing for git to detect a rename against). The root holds the workspace manifest,
-the dispatching `Makefile`, and `docs/DESIGN.md` (spans every package). See `docs/DESIGN.md`
-for why, and its "Repo layout" section for what else is planned to live beside this package
-(`packages/criteria-react`, …). Every path in this file that says `tests/...` or
-`sincpro_criteria/...` is relative to **this package's own directory**
-(`packages/criteria/`), not the repo root — commands in this file assume `cd packages/criteria`
-or use the root `Makefile`'s equivalent target, which fans out here.
+`@sincpro/mobile` evaluates a document collection in memory with `filtered` / `matches` from
+this package. A legacy list of `{field, operator, value}` is read as one `all`. Translating
+`selection` into SQL over promoted columns stays in the phone's ORM. This repo still has no
+`criteria-offline` package.
 
-## Current verified state (re-run before trusting this doc)
+The package lives at `packages/criteria`, beside `packages/criteria-react`. The root holds the
+workspace manifest, the dispatching `Makefile`, and `docs/DESIGN.md`. A path below that says
+`tests/...` or `sincpro_criteria/...` is relative to `packages/criteria/`. Commands are the
+root `Makefile`, which fans out to each package.
 
-```bash
-make verify-format   # eslint --fix + prettier + doctor + check-parity
-make typecheck        # tsc --noEmit — also enforces tests/types.test.ts's @ts-expect-error contract
-make test             # 258 tests, 0 fail
-make build             # dist/ builds clean
-```
-
-Last run: 258 tests passing (252 from before this addon, plus 6 in `tests/rest.test.ts`),
-typecheck clean, eslint clean, `scripts/doctor.sh` finds no traps, `make check-parity` confirms
-`tests/criteria-parity.json` matches `../sincpro_framework`, `make build` produces `dist/`.
-(`verify-format`'s own "formatting changed files" gate will still flag this session's
-uncommitted files against `HEAD` — that's expected until the user commits; it is not a new
-failure.)
+The test counts in the log below are from the session that wrote them. Re-run `make test`
+before trusting a number.
 
 ## What changed this session, grouped
 
@@ -52,7 +36,7 @@ The engine's `Grouping.by`/`having`/`totals` were renamed to `group_by`/`where_m
 
 | Concept           | Method (TS)                         | Wire key              | Python attribute          |
 | ----------------- | ----------------------------------- | --------------------- | ------------------------- |
-| filter rows       | `.where(...)`                       | `where`               | `Criteria.where`          |
+| filter rows       | `.where(...)` writes it             | `selection`           | `Criteria.selection`      |
 | order rows        | `.order(...)`                       | `order`               | `Criteria.order`          |
 | page rows         | `.limit()` `.cursor()` `.offset()`  | `pagination`          | `Criteria.pagination`     |
 | what to bring     | `.specification({...})`             | `specification`       | `Criteria.specification`  |
@@ -235,9 +219,9 @@ permission, open (unlike measures, which are a closed list because the name reac
    reads the engine's OpenAPI and emits typed `Fields<T>` unions and resource wrappers per
    model, so `criteria<Dataset>()` does not require someone to hand-write the `Dataset`
    interface.
-6. **`criteria-offline`**: local cache + command queue, for mobile. Not started — this is
-   also the point where `sincpro_mobile`'s own `ICriteria` (a flat, AND-only, no-order,
-   no-pagination shape) would need to be retired in favor of this package.
+6. **`criteria-offline`**: local cache + command queue, as its own package. Not started.
+   `@sincpro/mobile` already evaluates `selection` in memory with this package; the SQLite
+   translation of promoted columns belongs to that ORM, not here.
 7. **Migrate `sincpro_synthesis`'s frontend** off its hand-written `shared/criteria.ts` and
    onto this package plus `@sincpro/criteria/rest` (#2 above). **This moved up in priority
    mid-session** — it is not "a second implementation of the same grammar that still works",
@@ -361,7 +345,7 @@ Added 2026-10-29. The contract was synced (the framework renamed the schema's `L
 - **Meta**: `FieldMeta.choice_labels` (what each enum value is called, keyed by the value as
   text) with `choicesOf` / `choiceLabelOf`; a field with no `label` arrives named as its enum
   names itself. `Meta.get_id`. `Meta.search` is the entity's `DEFAULT_LITERAL_SEARCH` — a
-  criteria whose `where` holds `dynamic.param("text")` — not a list of `{field, mode}`:
+  criteria whose `selection` holds `dynamic.param("text")` — not a list of `{field, mode}`:
   `searchOver` fills it when present, and `matching` builds the engine's own select criteria.
   `tests/engine-meta.test.ts` was re-dumped from the framework.
 - **Problems**: `readProblem` reads the framework's `Problem` from a REST body, the gateway's
