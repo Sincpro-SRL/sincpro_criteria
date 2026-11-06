@@ -20,7 +20,7 @@ import { validate } from "@sincpro/criteria/validate";
  * @throws {InvalidCriteria} when the criteria asks for something the model refuses.
  *
  * @example
- * answer(rows, criteria().where(eq("encoding", "utf-8")).limit(20), meta);
+ * answer(rows, criteria().selection(["encoding", "=", "utf-8"]).limit(20), meta);
  */
 export function answer<T = AnyRecord>(
   rows: readonly T[],

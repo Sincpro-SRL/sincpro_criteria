@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { Filter } from "@sincpro/criteria";
-import { readFilter, where } from "@sincpro/criteria";
+import { readFilter, selection } from "@sincpro/criteria";
 
 const utf8 = { field: "encoding", operator: "=", value: "utf-8" };
 const big = { field: "row_count", operator: ">", value: 1000 };
@@ -48,20 +48,20 @@ describe("a condition written as a triple", () => {
 
 describe("combining", () => {
   it("needs no wrapper for one part", () => {
-    assert.deepEqual(where.all(["encoding", "=", "utf-8"]), utf8);
-    assert.deepEqual(where.any(["encoding", "=", "utf-8"]), utf8);
+    assert.deepEqual(selection.all(["encoding", "=", "utf-8"]), utf8);
+    assert.deepEqual(selection.any(["encoding", "=", "utf-8"]), utf8);
   });
 
   it("is nothing when nothing survives, because an empty AND matches everything", () => {
-    assert.equal(where.all(), undefined);
-    assert.equal(where.all(undefined, undefined), undefined);
-    assert.equal(where.any(), undefined);
-    assert.equal(where.negate(undefined), undefined);
+    assert.equal(selection.all(), undefined);
+    assert.equal(selection.all(undefined, undefined), undefined);
+    assert.equal(selection.any(), undefined);
+    assert.equal(selection.negate(undefined), undefined);
   });
 
   it("drops the empty parts and keeps the rest", () => {
     assert.deepEqual(
-      where.all(["encoding", "=", "utf-8"], undefined, ["row_count", ">", 1000]),
+      selection.all(["encoding", "=", "utf-8"], undefined, ["row_count", ">", 1000]),
       {
         all: [utf8, big],
       },
@@ -69,12 +69,12 @@ describe("combining", () => {
   });
 
   it("negates what it was given", () => {
-    assert.deepEqual(where.negate(["encoding", "=", "utf-8"]), { negate: utf8 });
+    assert.deepEqual(selection.negate(["encoding", "=", "utf-8"]), { negate: utf8 });
   });
 
   it("splices an incoming all instead of nesting it", () => {
     assert.deepEqual(
-      where.combined({ all: [utf8, big] } as Filter, ["name", "like", "labs"]),
+      selection.combined({ all: [utf8, big] } as Filter, ["name", "like", "labs"]),
       {
         all: [utf8, big, { field: "name", operator: "like", value: "labs" }],
       },
@@ -82,8 +82,8 @@ describe("combining", () => {
   });
 
   it("does not splice an any, which would change what it means", () => {
-    const either = where.any(["encoding", "=", "utf-8"], ["encoding", "=", "latin-1"])!;
-    assert.deepEqual(where.combined(either as Filter, ["row_count", ">", 1000]), {
+    const either = selection.any(["encoding", "=", "utf-8"], ["encoding", "=", "latin-1"])!;
+    assert.deepEqual(selection.combined(either as Filter, ["row_count", ">", 1000]), {
       all: [either, big],
     });
   });
@@ -91,10 +91,10 @@ describe("combining", () => {
 
 describe("a filter a screen builds", () => {
   it("reads left to right, and comes out as the tree the engine takes", () => {
-    const written = where.all(
+    const written = selection.all(
       ["name", "like", "labs"],
-      where.any(["encoding", "=", "utf-8"], ["producer_id", "is null", true]),
-      where.negate(["name", "like", "draft"]),
+      selection.any(["encoding", "=", "utf-8"], ["producer_id", "is null", true]),
+      selection.negate(["name", "like", "draft"]),
     );
 
     assert.deepEqual(written, {
@@ -110,6 +110,6 @@ describe("a filter a screen builds", () => {
 
   it("disappears when every chip is switched off, instead of turning into its opposite", () => {
     const chips: (Filter | undefined)[] = [undefined, undefined];
-    assert.equal(where.any(...chips), undefined);
+    assert.equal(selection.any(...chips), undefined);
   });
 });

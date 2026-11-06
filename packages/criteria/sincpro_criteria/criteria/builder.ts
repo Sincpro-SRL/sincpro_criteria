@@ -58,17 +58,17 @@ export function plain<T = AnyRecord>(written: CriteriaFor<T>): Criteria<T> {
  *
  * @example
  * // simple
- * const q = criteria<Dataset>().where(["encoding", "=", "utf-8"]).limit(50);
+ * const q = criteria<Dataset>().selection(["encoding", "=", "utf-8"]).limit(50);
  *
  * @example
  * // medium: order, a saved/unpacked criteria continued, OR/NOT
- * criteria<Dataset>(unpack(fromTheUrl)).where(["encoding", "=", "utf-8"]);
+ * criteria<Dataset>(unpack(fromTheUrl)).selection(["encoding", "=", "utf-8"]);
  *
  * const q = criteria<Dataset>()
- *   .where(
+ *   .selection(
  *     ["encoding", "=", "utf-8"],
- *     where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
- *     where.negate(["name", "like", "draft"]),
+ *     selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
+ *     selection.negate(["name", "like", "draft"]),
  *   )
  *   .order("-registered_at")
  *   .limit(100);
@@ -78,14 +78,14 @@ export function plain<T = AnyRecord>(written: CriteriaFor<T>): Criteria<T> {
  * // filter over the groups themselves, group-count paging AND row-count paging — one
  * // criteria, built up the same way regardless of which of those pieces get used.
  * const q = criteria<Dataset>()
- *   .where(
+ *   .selection(
  *     ["row_count", ">", 50],
  *     ["encoding", "!=", "latin-1"],
- *     where.any(
- *       where.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
+ *     selection.any(
+ *       selection.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
  *       ["registered_at", ">=", "2026-03-01T00:00:00.000Z"],
  *     ),
- *     where.negate(["name", "like", "draft"]),
+ *     selection.negate(["name", "like", "draft"]),
  *   )
  *   .groupBy("encoding", "producer_id")
  *   .measures({ total_rows: measure.sum("row_count"), avg_rows: measure.avg("row_count") })
@@ -136,34 +136,34 @@ export class CriteriaBuilder<T = AnyRecord, Totals extends string = never> {
   }
 
   /**
-   * The filter. **Accumulates with AND** — `.where(a).where(b)` is `a` and `b` — so a screen
+   * The filter. **Accumulates with AND** — `.selection(a).selection(b)` is `a` and `b` — so a screen
    * derives from a base without overwriting it. To start over, derive from the base again: it
    * is still whole, because this is immutable.
    *
    * @example
    * // simple: one condition
-   * .where(["encoding", "=", "utf-8"])
+   * .selection(["encoding", "=", "utf-8"])
    *
    * @example
    * // medium: two conditions ANDed, one of them an OR
-   * .where(
+   * .selection(
    *   ["encoding", "=", "utf-8"],
-   *   where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
+   *   selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
    * )
    *
    * @example
    * // complex: AND(A, B, OR(AND(C, D), E), NOT(F)) — three levels of real nesting
-   * .where(
+   * .selection(
    *   ["row_count", ">", 50],
    *   ["encoding", "!=", "latin-1"],
-   *   where.any(
-   *     where.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
+   *   selection.any(
+   *     selection.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
    *     ["registered_at", ">=", "2026-03-01T00:00:00.000Z"],
    *   ),
-   *   where.negate(["name", "like", "draft"]),
+   *   selection.negate(["name", "like", "draft"]),
    * )
    */
-  where(...parts: (Filter<T> | undefined)[]): CriteriaBuilder<T, Totals> {
+  selection(...parts: (Filter<T> | undefined)[]): CriteriaBuilder<T, Totals> {
     const selection = combined<T>(this.value.selection, ...parts);
     return this.with(selection === undefined ? {} : { selection });
   }
@@ -242,7 +242,7 @@ export class CriteriaBuilder<T = AnyRecord, Totals extends string = never> {
    * The numbers every group answers, each under a name of yours.
    *
    * Added to the ones already asked for, and **the names are remembered**: they are what
-   * {@link CriteriaBuilder.whereMeasures} and {@link CriteriaBuilder.orderGroups} offer.
+   * {@link CriteriaBuilder.selectionMeasures} and {@link CriteriaBuilder.orderGroups} offer.
    *
    * Every bucket answers `count` — how many rows it holds — without being asked.
    *
@@ -284,7 +284,7 @@ export class CriteriaBuilder<T = AnyRecord, Totals extends string = never> {
 
   /**
    * Filters the GROUPS by the numbers they measured — not the rows that made them, which is
-   * what {@link CriteriaBuilder.where} does.
+   * what {@link CriteriaBuilder.selection} does.
    *
    * It reads the names this criteria measured, plus `count`, and the editor offers exactly
    * those.

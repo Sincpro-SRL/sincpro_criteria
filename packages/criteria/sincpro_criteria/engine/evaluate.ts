@@ -159,7 +159,7 @@ function holdsOver(
  *
  * @example
  * matches(dataset, ["row_count", ">", 1000]);
- * matches(dataset, where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]));
+ * matches(dataset, selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]));
  * matches(invoice, ["amount", ">", "100.00"], meta); // `amount` is exact: compared as a number
  * matches(invoice, ["due", "<", dynamic.today()], meta, { now }); // read on the day `now` says
  */

@@ -23,8 +23,8 @@ import {
   pack,
   readCriteria,
   resource,
+  selection,
   unpack,
-  where,
 } from "@sincpro/criteria";
 import { answer, answerGroups } from "@sincpro/criteria/engine";
 
@@ -108,11 +108,11 @@ const meta = describeRows(rows, { identity: "invoice_id" });
 
 /** Everything a criteria can say, in one object. */
 const reading = criteria<Invoice>()
-  .where(
+  .selection(
     ["state", "in", ["posted", "paid"]],
     ["debit", "between", [100, 50000]],
-    where.any(["journal", "=", "SAL"], ["tags", "contains", "urgent"]),
-    where.negate(["partner", "is null", true]),
+    selection.any(["journal", "=", "SAL"], ["tags", "contains", "urgent"]),
+    selection.negate(["partner", "is null", true]),
   )
   .order("-posted_at", "invoice_id")
   .limit(2)
@@ -308,7 +308,7 @@ describe("the same reading, through a URL and back", () => {
 
   it("says what it is, in one line", () => {
     assert.equal(
-      explain(criteria<Invoice>().where(["debit", ">", 1000]).groupBy("journal")),
+      explain(criteria<Invoice>().selection(["debit", ">", 1000]).groupBy("journal")),
       "where debit > 1000, grouped by journal",
     );
   });

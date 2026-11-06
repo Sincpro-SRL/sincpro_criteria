@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { Meta } from "@sincpro/criteria";
-import { criteria, measure, readFilter, validate, where } from "@sincpro/criteria";
+import { criteria, measure, readFilter, selection, validate } from "@sincpro/criteria";
 
 import type { Dataset } from "./fixtures";
 import { datasetMeta } from "./fixtures";
@@ -10,7 +10,7 @@ import { datasetMeta } from "./fixtures";
 describe("what the model cannot answer is dropped, never refused", () => {
   it("drops a field the model does not have", () => {
     const { criteria: checked, dropped } = validate(
-      criteria<Dataset>().where(
+      criteria<Dataset>().selection(
         ["encoding", "=", "utf-8"],
         ["legacy_flag" as never, "=", true],
       ),
@@ -22,7 +22,7 @@ describe("what the model cannot answer is dropped, never refused", () => {
 
   it("drops an operator the type does not take", () => {
     const { dropped } = validate(
-      criteria<Dataset>().where(["row_count", "like", "1000"]),
+      criteria<Dataset>().selection(["row_count", "like", "1000"]),
       datasetMeta,
     );
     assert.deepEqual(dropped, [{ field: "row_count", reason: "unsupported_operator" }]);
@@ -30,7 +30,7 @@ describe("what the model cannot answer is dropped, never refused", () => {
 
   it("drops a value that will not read as the field's type", () => {
     const { dropped } = validate(
-      criteria<Dataset>().where(["row_count", ">", "banana"]),
+      criteria<Dataset>().selection(["row_count", ">", "banana"]),
       datasetMeta,
     );
     assert.deepEqual(dropped, [{ field: "row_count", reason: "bad_value" }]);
@@ -53,8 +53,8 @@ describe("what the model cannot answer is dropped, never refused", () => {
 describe("the tree collapses around what it lost", () => {
   it("removes a connective that lost every part, rather than leaving it empty", () => {
     const { criteria: checked } = validate(
-      criteria<Dataset>().where(
-        where.any(["gone" as never, "=", 1], ["also_gone" as never, "=", 2]),
+      criteria<Dataset>().selection(
+        selection.any(["gone" as never, "=", 1], ["also_gone" as never, "=", 2]),
       ),
       datasetMeta,
     );
@@ -63,8 +63,8 @@ describe("the tree collapses around what it lost", () => {
 
   it("unwraps a connective left with one part", () => {
     const { criteria: checked } = validate(
-      criteria<Dataset>().where(
-        where.all(["encoding", "=", "utf-8"], ["gone" as never, "=", 1]),
+      criteria<Dataset>().selection(
+        selection.all(["encoding", "=", "utf-8"], ["gone" as never, "=", 1]),
       ),
       datasetMeta,
     );
@@ -75,7 +75,7 @@ describe("the tree collapses around what it lost", () => {
 describe("values are read into the type the column compares against", () => {
   it("reads the text a URL carries", () => {
     const { criteria: checked } = validate(
-      criteria<Dataset>().where(["row_count", ">", "1000"]),
+      criteria<Dataset>().selection(["row_count", ">", "1000"]),
       datasetMeta,
     );
     assert.deepEqual(checked.selection, readFilter(["row_count", ">", 1000]));
@@ -83,7 +83,7 @@ describe("values are read into the type the column compares against", () => {
 
   it("reads every member of a multi-valued operator", () => {
     const { criteria: checked, dropped } = validate(
-      criteria<Dataset>().where(["row_count", "between", ["10", "20"]]),
+      criteria<Dataset>().selection(["row_count", "between", ["10", "20"]]),
       datasetMeta,
     );
     assert.deepEqual(dropped, []);
@@ -92,7 +92,7 @@ describe("values are read into the type the column compares against", () => {
 
   it("refuses two bounds that are not two", () => {
     const { dropped } = validate(
-      criteria<Dataset>().where({ field: "row_count", operator: "between", value: [1] }),
+      criteria<Dataset>().selection({ field: "row_count", operator: "between", value: [1] }),
       datasetMeta,
     );
     assert.deepEqual(dropped, [{ field: "row_count", reason: "bad_value" }]);
@@ -100,7 +100,7 @@ describe("values are read into the type the column compares against", () => {
 
   it("takes the value of is null as the question, not as the field's type", () => {
     const { criteria: checked, dropped } = validate(
-      criteria<Dataset>().where(["producer_id", "is null", true]),
+      criteria<Dataset>().selection(["producer_id", "is null", true]),
       datasetMeta,
     );
     assert.deepEqual(dropped, []);
@@ -109,7 +109,7 @@ describe("values are read into the type the column compares against", () => {
 
   it("asks about one member of a list column", () => {
     const { dropped } = validate(
-      criteria<Dataset>().where(["tags", "contains", "raw"]),
+      criteria<Dataset>().selection(["tags", "contains", "raw"]),
       datasetMeta,
     );
     assert.deepEqual(dropped, []);
@@ -144,7 +144,7 @@ describe("what the server would refuse outright", () => {
       criteria<Dataset>()
         .groupBy("encoding")
         .measures({ rows: measure.sum("row_count") })
-        .whereMeasures(where.all(["count", ">", 10], ["rows", ">", 100])),
+        .whereMeasures(selection.all(["count", ">", 10], ["rows", ">", 100])),
       datasetMeta,
     );
     assert.deepEqual(refused, []);
@@ -153,7 +153,7 @@ describe("what the server would refuse outright", () => {
   it("is silent when everything can be answered", () => {
     const { dropped, refused } = validate(
       criteria<Dataset>()
-        .where(["encoding", "=", "utf-8"])
+        .selection(["encoding", "=", "utf-8"])
         .order("-registered_at")
         .limit(100),
       datasetMeta,
@@ -214,7 +214,7 @@ describe("a node inside an expanded relation", () => {
   it("keeps the node it could check, cut to what survived", () => {
     const { criteria: checked } = validate(
       criteria().specification({
-        runs: { selection: where.all(["state", "=", "done"], ["gone", "=", 1]) },
+        runs: { selection: selection.all(["state", "=", "done"], ["gone", "=", 1]) },
       }),
       withRelation,
     );
@@ -249,7 +249,7 @@ describe("the criteria that comes back is the one the engine will answer", () =>
 describe("a blank box in a filter form", () => {
   it("is not a zero", () => {
     const { criteria: checked, dropped } = validate(
-      criteria<Dataset>().where(["row_count", ">", ""]),
+      criteria<Dataset>().selection(["row_count", ">", ""]),
       datasetMeta,
     );
     assert.deepEqual(dropped, [{ field: "row_count", reason: "bad_value" }]);
@@ -258,7 +258,7 @@ describe("a blank box in a filter form", () => {
 
   it("is not a zero for a decimal either", () => {
     const { dropped } = validate(
-      criteria<Dataset>().where(["row_count", ">", "  "]),
+      criteria<Dataset>().selection(["row_count", ">", "  "]),
       datasetMeta,
     );
     assert.deepEqual(dropped, [{ field: "row_count", reason: "bad_value" }]);

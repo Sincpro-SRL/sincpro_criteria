@@ -19,10 +19,10 @@ clean it up on unmount.
 import { useReading } from "@sincpro/criteria-react";
 import { criteria } from "@sincpro/criteria";
 
-function DatasetList({ resource, where }: Props) {
+function DatasetList({ resource, selection }: Props) {
   const { rows, status, hasMore, more } = useReading(
     resource,
-    criteria<Dataset>().where(where).limit(50),
+    criteria<Dataset>().selection(selection).limit(50),
   );
 
   if (status === "loading") return <Spinner />;
@@ -73,14 +73,14 @@ site. A small custom hook is the natural shape, not a HOC — nothing here needs
 component to do this:
 
 ```tsx
-import { criteria, merge, plain, where } from "@sincpro/criteria";
+import { criteria, merge, plain, selection } from "@sincpro/criteria";
 import { useReading } from "@sincpro/criteria-react";
 
 function usePermissionedAccounts(resource: Resource<Account>, typed: Expression<Account>) {
-  const permission = criteria<Account>().where(
-    where.any(["region", "=", "north"], ["owner", "=", useCurrentUser()]),
+  const permission = criteria<Account>().selection(
+    selection.any(["region", "=", "north"], ["owner", "=", useCurrentUser()]),
   );
-  const asked = merge(plain(permission), plain(criteria<Account>().where(typed)));
+  const asked = merge(plain(permission), plain(criteria<Account>().selection(typed)));
   return useReading(resource, asked);
 }
 ```
@@ -88,7 +88,7 @@ function usePermissionedAccounts(resource: Resource<Account>, typed: Expression<
 `asked` is what actually reaches the network — the user's filter narrows the permission, it
 can never widen past it, because `selection` always merges by AND. See the core README's "The law
 for merging two of them" for what merge does with the rest of a criteria (order, pagination,
-grouping), not just `selection`. `.where()` is the method that writes that field.
+grouping), not just `selection`. `.selection()` is the method that writes that field.
 
 ## Development
 

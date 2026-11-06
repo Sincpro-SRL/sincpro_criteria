@@ -76,20 +76,20 @@ carry an analytic account — twenty lines per invoice, each line with its analy
 code and name.
 
 `plain()` of this is the `criteria` the framework validates. A condition is a triple. Several
-arguments are ANDed. `where.any` and `where.negate` are OR and NOT. `.order("-invoice_date")`
+arguments are ANDed. `selection.any` and `selection.negate` are OR and NOT. `.order("-invoice_date")`
 is written with a minus and travels as `{ field, descending: true }`.
 
 ```ts
-import { criteria, plain, where } from "@sincpro/criteria";
+import { criteria, plain, selection } from "@sincpro/criteria";
 
 const postedSales = criteria<Invoice>()
-  .where(
+  .selection(
     ["move_type", "=", "out_invoice"],
     ["state", "=", "posted"],
     ["invoice_date", "between", ["2026-01-01", "2026-03-31"]],
     ["amount_total", ">", 0],
-    where.any(["partner_id", "in", ["p-acme", "p-andes"]], ["journal_id", "=", "sale"]),
-    where.negate(["number", "like", "DRAFT"]),
+    selection.any(["partner_id", "in", ["p-acme", "p-andes"]], ["journal_id", "=", "sale"]),
+    selection.negate(["number", "like", "DRAFT"]),
   )
   .order("-invoice_date", "number")
   .limit(50)
@@ -102,7 +102,7 @@ const postedSales = criteria<Invoice>()
     partner: plain(criteria<Partner>().specification({ name: {} })),
     lines: plain(
       criteria<InvoiceLine>()
-        .where(["analytic_account_id", "is null", false]) // false → IS NOT NULL
+        .selection(["analytic_account_id", "is null", false]) // false → IS NOT NULL
         .order("date")
         .limit(20)
         .specification({
@@ -133,7 +133,7 @@ first.
 import { criteria, measure } from "@sincpro/criteria";
 
 const byAnalytic = criteria<InvoiceLine>()
-  .where(
+  .selection(
     ["date", "between", ["2026-01-01", "2026-03-31"]],
     ["analytic_account_id", "is null", false],
   )
@@ -164,7 +164,7 @@ const shown = derive(buckets, {
 ```
 
 On the wire the grouping is one object. `selection` filters the lines; `where_measures`
-filters the buckets. `.where()` is how a criteria is written, and what it sets is `selection`:
+filters the buckets. `.selection()` is how a criteria is written, and what it sets is `selection`:
 
 ```json
 {
@@ -221,7 +221,7 @@ const lines = resource(
 
 const page = await lines.page(
   criteria<InvoiceLine>()
-    .where(["analytic_account_id", "is null", false], ["debit", ">", 1000])
+    .selection(["analytic_account_id", "is null", false], ["debit", ">", 1000])
     .order("-date")
     .limit(20),
 );

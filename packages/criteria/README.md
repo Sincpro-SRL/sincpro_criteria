@@ -23,7 +23,7 @@ const datasets = resource<Dataset>(async (q) =>
 
 const reading = datasets.read(
   criteria<Dataset>()
-    .where(["encoding", "=", "utf-8"], ["row_count", ">", 1000])
+    .selection(["encoding", "=", "utf-8"], ["row_count", ">", 1000])
     .order("-registered_at")
     .limit(100),
 );
@@ -55,18 +55,18 @@ write one. The editor offers the fields at the first position and the operators 
 and a typo is a compile error naming the field you meant.
 
 ```ts
-import { where } from "@sincpro/criteria";
+import { selection } from "@sincpro/criteria";
 
-.where(
+.selection(
   ["encoding", "=", "utf-8"],
   ["row_count", ">", 1000],
-  where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
-  where.negate(["name", "like", "draft"]),
+  selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
+  selection.negate(["name", "like", "draft"]),
 )
 ```
 
-Arguments are ANDed. Structure is three functions under one name — `where.all`, `where.any`,
-`where.negate` — and they are functions because they hold the rule about what is empty: **an
+Arguments are ANDed. Structure is three functions under one name — `selection.all`, `selection.any`,
+`selection.negate` — and they are functions because they hold the rule about what is empty: **an
 `any` with no parts matches nothing and an `all` with no parts matches everything**, so a row
 of chips that are all switched off has to disappear rather than turn into its opposite.
 
@@ -84,7 +84,7 @@ relation holds — several, one or none — answers the selection, written over 
 fields. A sale with a line of more than ten units:
 
 ```ts
-criteria<Sale>().where({
+criteria<Sale>().selection({
   through: "lines",
   selection: { field: "qty", operator: ">", value: 10 },
 });
@@ -108,7 +108,7 @@ never say it is another user.
 ```ts
 import { criteria, dynamic } from "@sincpro/criteria";
 
-criteria<Invoice>().where(
+criteria<Invoice>().selection(
   ["due", "<", dynamic.today()],
   ["owner_id", "=", dynamic.context("user_id")],
   ["posted_at", ">=", dynamic.today({ minus: { days: 30 }, startOf: "month" })],
@@ -159,18 +159,18 @@ same rows. `merge` is total, so they never disagree quietly:
 | the cursor                        | **never carried over** — it belongs to one ordering over one filter                   |
 
 A permission the server hands out, and a filter the user typed, in the shape they actually
-take — `where.any`/`where.negate` included — merged into the one criteria that goes out:
+take — `selection.any`/`selection.negate` included — merged into the one criteria that goes out:
 
 ```ts
 // The server's rule — the user never sees or edits this.
-const permission = criteria<Account>().where(
-  where.any(["region", "=", "north"], ["owner", "=", currentUser]),
+const permission = criteria<Account>().selection(
+  selection.any(["region", "=", "north"], ["owner", "=", currentUser]),
 );
 
 // What the user typed into a search box.
-const typed = criteria<Account>().where(
+const typed = criteria<Account>().selection(
   ["kind", "=", "asset"],
-  where.negate(["region", "=", "south"]),
+  selection.negate(["region", "=", "south"]),
 );
 
 const asked = merge(plain(permission), plain(typed));
@@ -302,7 +302,7 @@ A transport failure or a JSON-RPC `error` in the envelope both throw `RpcError`,
 JSON-RPC error object (`code`, `message`, `data`). The method names are application-specific —
 `{instance}.{layer}.{dto_name}` — so this asks for them rather than guessing.
 
-**`where.any`/`where.negate`, a saved reading, a permission merged with what the user typed —
+**`selection.any`/`selection.negate`, a saved reading, a permission merged with what the user typed —
 none of it is transport-specific.** Both `restSource` and `rpcSource` send whatever `Criteria<T>`
 they are handed through `pack`/`plain`; the criteria from "The law for merging two of them"
 above travels identically whether `read()` ends up calling `restSource` or `rpcSource` — the
@@ -324,7 +324,7 @@ The rules that are easy to get wrong live in one place:
 const reading = datasets.read(base);
 await reading.load();
 await reading.more();
-await reading.refine(base.where(searchOver(reading.meta!, typed)));
+await reading.refine(base.selection(searchOver(reading.meta!, typed)));
 await reading.reload();
 
 reading.subscribe(() => render()); // headless: React, Vue, Svelte, or nothing
@@ -346,7 +346,7 @@ To walk everything, no cursor appears at all:
 
 ```ts
 for await (const dataset of datasets.all(
-  criteria<Dataset>().where(["encoding", "=", "utf-8"]),
+  criteria<Dataset>().selection(["encoding", "=", "utf-8"]),
 )) {
   // one page at a time, under the hood
 }
@@ -455,7 +455,7 @@ localStorage.setItem("my-reading", pack(forSaving(reading.criteria)));
 const saved = unpack(localStorage.getItem("my-reading")!);
 
 await datasets.page(saved); // run it
-criteria<Dataset>(saved).where(["row_count", ">", 1000]); // go on building over it
+criteria<Dataset>(saved).selection(["row_count", ">", 1000]); // go on building over it
 merge(saved, whatTheScreenAlwaysAdds); // cross it, under the law
 conditionsOf(saved.selection).map((one) => explainFilter(one, { meta })); // draw its chips
 ```

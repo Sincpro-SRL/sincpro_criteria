@@ -457,7 +457,7 @@ export function choiceLabelOf(
  * @example
  * // medium: the options feed a filter, and a chip reads the condition back
  * const options = choicesOf(meta, "priority", "es");
- * const q = criteria<Ticket>().where(["priority", "in", options.slice(0, 2).map((o) => o.value)]);
+ * const q = criteria<Ticket>().selection(["priority", "in", options.slice(0, 2).map((o) => o.value)]);
  * choiceLabelOf(meta, "priority", "high", "es"); // "Alta" — what the chip shows
  */
 export function choicesOf(
@@ -495,7 +495,7 @@ export function choicesOf(
  * //        {field: "title", operator: "like", value: "F-1"}]}
  *
  * @example
- * const q = base.where(searchOver(meta, typed));
+ * const q = base.selection(searchOver(meta, typed));
  */
 export function searchOver<T = AnyRecord>(
   meta: Meta | null | undefined,

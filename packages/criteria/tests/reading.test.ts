@@ -119,7 +119,7 @@ describe("a reading", () => {
     await reading.more();
     assert.equal(reading.rows.length, 4);
 
-    await reading.refine(base.where(["encoding", "=", "latin-1"]));
+    await reading.refine(base.selection(["encoding", "=", "latin-1"]));
     assert.deepEqual(
       reading.rows.map((one) => one.dataset_id),
       ["d3", "d5"],
@@ -148,7 +148,7 @@ describe("a reading", () => {
   });
 
   it("reports what the model could not answer, without failing", async () => {
-    const reading = datasets().read(criteria<Dataset>().where(["gone" as never, "=", 1]));
+    const reading = datasets().read(criteria<Dataset>().selection(["gone" as never, "=", 1]));
     await reading.load();
     assert.deepEqual(reading.dropped, [{ field: "gone", reason: "unknown_field" }]);
     assert.equal(reading.status, "ready");
@@ -196,7 +196,7 @@ describe("the race a search box loses", () => {
 
     const slow = reading.load();
     const fast = reading.refine(
-      criteria<Dataset>().order("dataset_id").where(["encoding", "=", "latin-1"]),
+      criteria<Dataset>().order("dataset_id").selection(["encoding", "=", "latin-1"]),
     );
 
     // The second question is answered first, and then the first one comes back late.
@@ -268,12 +268,12 @@ describe("a search box, end to end", () => {
     await reading.load();
 
     await reading.refine(
-      criteria<Dataset>().limit(10).where(searchOver(reading.meta!, "csv")),
+      criteria<Dataset>().limit(10).selection(searchOver(reading.meta!, "csv")),
     );
     assert.equal(reading.rows.length, 5);
 
     await reading.refine(
-      criteria<Dataset>().limit(10).where(searchOver(reading.meta!, "trips")),
+      criteria<Dataset>().limit(10).selection(searchOver(reading.meta!, "trips")),
     );
     assert.deepEqual(
       reading.rows.map((one) => one.dataset_id),

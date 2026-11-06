@@ -9,7 +9,7 @@ paragraphs when they disagree.
 
 `@sincpro/criteria` 1.1.0 is published. It mirrors `sincpro_framework/ddd/criteria` in
 TypeScript, with zero dependencies. The filter on the object and on the wire is `selection`.
-`.where(...)` is only how a criteria is written: it sets `selection`. Python's field is
+`.selection(...)` is only how a criteria is written: it sets `selection`. Python's field is
 `Criteria.selection`. There is no `Criteria.where`.
 
 `@sincpro/mobile` evaluates a document collection in memory with `filtered` / `matches` from
@@ -36,7 +36,7 @@ The engine's `Grouping.by`/`having`/`totals` were renamed to `group_by`/`where_m
 
 | Concept           | Method (TS)                         | Wire key              | Python attribute          |
 | ----------------- | ----------------------------------- | --------------------- | ------------------------- |
-| filter rows       | `.where(...)` writes it             | `selection`           | `Criteria.selection`      |
+| filter rows       | `.selection(...)` writes it         | `selection`           | `Criteria.selection`      |
 | order rows        | `.order(...)`                       | `order`               | `Criteria.order`          |
 | page rows         | `.limit()` `.cursor()` `.offset()`  | `pagination`          | `Criteria.pagination`     |
 | what to bring     | `.specification({...})`             | `specification`       | `Criteria.specification`  |
@@ -50,8 +50,8 @@ Groups have **no cursor** on purpose (a cursor names a row; a group is a number 
 rows, so ordering by a measure leaves nothing to resume past — counted with `offset` instead).
 
 A condition is written as a **triple** — `["field", "operator", value]` — not as named helper
-functions (`eq`, `gt`, `like`, …: all 13 were deleted). Structure is `where.all` / `where.any`
-/ `where.negate`, one namespace. Verified with TypeScript's language service: the triple
+functions (`eq`, `gt`, `like`, …: all 13 were deleted). Structure is `selection.all` / `selection.any`
+/ `selection.negate`, one namespace. Verified with TypeScript's language service: the triple
 autocompletes the field at position 1 and the operator at position 2, and a typo fails to
 compile with "Did you mean...".
 

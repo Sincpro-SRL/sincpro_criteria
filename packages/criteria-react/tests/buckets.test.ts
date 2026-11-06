@@ -41,7 +41,7 @@ describe("useBuckets", () => {
   });
 
   it("open() hands back a Reading for that bucket's own criteria", async () => {
-    const bucketCriteria = plain(criteria<Widget>().where(["kind", "=", "raw"]));
+    const bucketCriteria = plain(criteria<Widget>().selection(["kind", "=", "raw"]));
     const widgets = resource<Widget>({
       read: async () => ({ rows: [], cursor: null, count: null, meta: null, dropped: [] }),
       group: async () =>

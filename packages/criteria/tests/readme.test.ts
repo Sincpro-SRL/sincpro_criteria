@@ -24,9 +24,9 @@ import {
   pageFrom,
   resource,
   searchOver,
+  selection,
   unpack,
   validate,
-  where,
 } from "@sincpro/criteria";
 
 import type { Dataset } from "./fixtures";
@@ -84,7 +84,10 @@ async function served(packed: string) {
 describe("README · a filtered page", () => {
   it("is one line per query", async () => {
     const page = await datasets.page(
-      criteria<Dataset>().where(["encoding", "=", "utf-8"]).order("-registered_at").limit(20),
+      criteria<Dataset>()
+        .selection(["encoding", "=", "utf-8"])
+        .order("-registered_at")
+        .limit(20),
     );
     assert.deepEqual(
       page.rows.map((one) => one.dataset_id),
@@ -95,19 +98,19 @@ describe("README · a filtered page", () => {
 
 describe("README · a filter that reads left to right", () => {
   it("is triples, and three functions for the structure", () => {
-    const q = criteria<Dataset>().where(
+    const q = criteria<Dataset>().selection(
       ["encoding", "=", "utf-8"],
       ["row_count", ">", 1000],
-      where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
-      where.negate(["name", "like", "draft"]),
+      selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
+      selection.negate(["name", "like", "draft"]),
     );
     assert.equal(conditionsOf(q.value.selection).length, 5);
   });
 
   it("is a value a function can return", () => {
     const mine = (): Filter<Dataset> =>
-      where.any(["tags", "contains", "raw"], ["producer_id", "is null", true])!;
-    assert.ok(criteria<Dataset>().where(mine()).value.selection);
+      selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true])!;
+    assert.ok(criteria<Dataset>().selection(mine()).value.selection);
   });
 });
 
@@ -126,7 +129,7 @@ describe("README · a search box", () => {
     const reading = datasets.read(criteria<Dataset>().limit(10));
     await reading.load();
     await reading.refine(
-      criteria<Dataset>().limit(10).where(searchOver(reading.meta!, "labs")),
+      criteria<Dataset>().limit(10).selection(searchOver(reading.meta!, "labs")),
     );
     assert.deepEqual(
       reading.rows.map((one) => one.dataset_id),
@@ -159,7 +162,7 @@ describe("README · grouping", () => {
 describe("README · a saved reading", () => {
   it("is saved, read back, built upon and drawn", async () => {
     const q = criteria<Dataset>()
-      .where(["encoding", "=", "utf-8"])
+      .selection(["encoding", "=", "utf-8"])
       .order("-registered_at")
       .limit(20);
 
@@ -171,7 +174,7 @@ describe("README · a saved reading", () => {
     assert.equal(page.rows.length, 2);
 
     // go on building over it
-    const narrowed = criteria<Dataset>(saved).where(["row_count", ">", 1000]);
+    const narrowed = criteria<Dataset>(saved).selection(["row_count", ">", 1000]);
     assert.equal(conditionsOf(narrowed.value.selection).length, 2);
 
     // cross it with what the screen always adds
@@ -200,7 +203,7 @@ describe("README · rows already in hand", () => {
   it("answers the same criteria with no server at all", async () => {
     const local = resource(fromRows(rows));
     const page = await local.page(
-      criteria().where(["encoding", "=", "utf-8"]).order("dataset_id"),
+      criteria().selection(["encoding", "=", "utf-8"]).order("dataset_id"),
     );
     assert.equal(page.rows.length, 2);
   });
@@ -211,7 +214,7 @@ describe("README · what the model says can be asked", () => {
     assert.ok(!fieldsThatSort(datasetMeta).includes("producer_id"));
 
     const { dropped, refused } = validate(
-      criteria<Dataset>().where(["gone" as never, "=", 1]),
+      criteria<Dataset>().selection(["gone" as never, "=", 1]),
       datasetMeta,
     );
     assert.deepEqual(dropped, [{ field: "gone", reason: "unknown_field" }]);

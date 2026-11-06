@@ -68,12 +68,12 @@ const meta = {
   },
 } as unknown as Meta;
 
-function counts(levels: Level<Bill>[], where?: unknown): Record<string, number> {
+function counts(levels: Level<Bill>[], selection?: unknown): Record<string, number> {
   const q = criteria<Bill>();
   const grouped = q.groupBy(...levels);
   const page = answerGroups(
     bills,
-    where === undefined ? grouped : { ...grouped.value, selection: where as never },
+    selection === undefined ? grouped : { ...grouped.value, selection: selection as never },
     meta,
   );
   return Object.fromEntries(page.rows.map((one) => [String(one.value), one.count]));
@@ -173,19 +173,22 @@ describe("the groups with no rows", () => {
   });
 
   it("lists the grains between the bounds the filter gives", () => {
-    const where = {
+    const selection = {
       all: [
         { field: "posted_at", operator: ">=", value: "2026-01-01T00:00:00Z" },
         { field: "posted_at", operator: "<", value: "2026-05-01T00:00:00Z" },
       ],
     };
 
-    assert.deepEqual(counts([{ field: "posted_at", grain: "month", fill: true }], where), {
-      "2026-01": 2,
-      "2026-02": 0,
-      "2026-03": 1,
-      "2026-04": 0,
-    });
+    assert.deepEqual(
+      counts([{ field: "posted_at", grain: "month", fill: true }], selection),
+      {
+        "2026-01": 2,
+        "2026-02": 0,
+        "2026-03": 1,
+        "2026-04": 0,
+      },
+    );
   });
 
   it("folds an empty group to nothing and a count to zero", () => {

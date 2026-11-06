@@ -105,7 +105,7 @@ describe("a page out of rows in hand", () => {
   it("filters, sorts, pages and counts", () => {
     const page = answer(
       rows,
-      criteria<Dataset>().where(["encoding", "=", "utf-8"]).order("row_count").limit(2),
+      criteria<Dataset>().selection(["encoding", "=", "utf-8"]).order("row_count").limit(2),
       datasetMeta,
     );
     assert.deepEqual(ids(page), ["d1", "d2"]);
@@ -168,7 +168,7 @@ describe("a page out of rows in hand", () => {
   it("drops what the model cannot answer and still runs", () => {
     const page = answer(
       rows,
-      criteria<Dataset>().where(["gone" as never, "=", 1]),
+      criteria<Dataset>().selection(["gone" as never, "=", 1]),
       datasetMeta,
     );
     assert.deepEqual(page.dropped, [{ field: "gone", reason: "unknown_field" }]);

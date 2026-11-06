@@ -168,7 +168,7 @@ function field<T = AnyRecord>(name: NoInfer<Fields<T>>): FromField {
  * its own clock, its own timezone and its own context.
  *
  * @example
- * criteria<Invoice>().where(
+ * criteria<Invoice>().selection(
  *   ["due", "<", dynamic.today()],
  *   ["owner_id", "=", dynamic.context("user_id")],
  *   ["posted_at", ">=", dynamic.today({ minus: { days: 30 } })],

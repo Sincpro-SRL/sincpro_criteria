@@ -48,19 +48,19 @@ export interface UseBucketsResult<T> extends BucketsState<T> {
  * @example
  * // complex: two grouping levels, two measures, a filter over the groups themselves,
  * // group-count paging AND row-count paging, and following one bucket's own cursor further.
- * import { resumingFrom, where } from "@sincpro/criteria";
+ * import { resumingFrom, selection } from "@sincpro/criteria";
  *
  * function HighVolumeProducers({ resource }: Props) {
  *   const tree = useBuckets(
  *     resource,
  *     criteria<Dataset>()
- *       .where(
+ *       .selection(
  *         ["row_count", ">", 50],
- *         where.any(
- *           where.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
+ *         selection.any(
+ *           selection.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
  *           ["registered_at", ">=", "2026-03-01T00:00:00.000Z"],
  *         ),
- *         where.negate(["name", "like", "draft"]),
+ *         selection.negate(["name", "like", "draft"]),
  *       )
  *       .groupBy("encoding", "producer_id")
  *       .measures({ total_rows: measure.sum("row_count") })

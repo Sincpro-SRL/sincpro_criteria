@@ -17,7 +17,7 @@ import type { Dataset } from "./fixtures";
 describe("a criteria in a URL", () => {
   it("comes back the way it went", () => {
     const q = criteria<Dataset>()
-      .where(["encoding", "=", "utf-8"])
+      .selection(["encoding", "=", "utf-8"])
       .order("-registered_at")
       .limit(100)
       .groupBy("encoding")
@@ -30,7 +30,7 @@ describe("a criteria in a URL", () => {
   });
 
   it("is safe in a URL", () => {
-    const packed = pack(criteria().where(["name", "=", "a/b+c?d=e"]));
+    const packed = pack(criteria().selection(["name", "=", "a/b+c?d=e"]));
     assert.ok(/^[A-Za-z0-9_-]+$/.test(packed));
   });
 

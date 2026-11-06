@@ -214,7 +214,7 @@ describe("rows with nothing said about them", () => {
       [1, 2],
     );
 
-    const filtered = await mine.page(criteria().where(["name", "=", "b"]));
+    const filtered = await mine.page(criteria().selection(["name", "=", "b"]));
     assert.deepEqual(
       filtered.rows.map((one) => one.id),
       [2],
@@ -247,11 +247,14 @@ describe("rows with nothing said about them", () => {
 
 describe("a pivot through a resource", () => {
   it("crosses the axes over the rows the criteria matched", async () => {
-    const pivot = await datasets().pivot(criteria<Dataset>().where(["row_count", ">", 100]), {
-      rows: ["encoding"],
-      columns: [["registered_at", "month"]],
-      measures: { total: measure.sum("row_count") },
-    });
+    const pivot = await datasets().pivot(
+      criteria<Dataset>().selection(["row_count", ">", 100]),
+      {
+        rows: ["encoding"],
+        columns: [["registered_at", "month"]],
+        measures: { total: measure.sum("row_count") },
+      },
+    );
 
     assert.equal(cellOf(pivot, ["utf-8"], ["2026-01"])?.count, 2);
     assert.equal(cellOf(pivot, ["latin-1"], ["2026-02"]), undefined, "d3 was filtered out");
@@ -289,7 +292,7 @@ describe("a definition read off the rows", () => {
 
     // Without it, asking "which ones have no producer" is dropped as an unsupported
     // operator and the reading silently widens to everything.
-    const { dropped } = validate(criteria().where(["producer", "is null", true]), meta);
+    const { dropped } = validate(criteria().selection(["producer", "is null", true]), meta);
     assert.deepEqual(dropped, []);
   });
 });

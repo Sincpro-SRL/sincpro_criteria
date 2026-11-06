@@ -47,7 +47,7 @@ export interface ReadingState<T> {
  * const reading = datasets.read(criteria<Dataset>().order("-registered_at").limit(100));
  * await reading.load();
  * await reading.more(); // infinite scroll
- * await reading.refine(base.where(searchOver(reading.meta!, typed))); // search box
+ * await reading.refine(base.selection(searchOver(reading.meta!, typed))); // search box
  */
 export class Reading<T = AnyRecord> extends Store<ReadingState<T>> {
   private readonly source: Source<T>;

@@ -54,7 +54,7 @@ describe("useReading", () => {
       renderCount++;
       // A fresh object literal every render — this is the case `pack(criteria)` guards
       // against: without it, this would be an infinite loop of new readings.
-      useReading(widgets, criteria<Widget>().where(["id", "=", "1"]));
+      useReading(widgets, criteria<Widget>().selection(["id", "=", "1"]));
       return null;
     }
 
@@ -79,7 +79,7 @@ describe("useReading", () => {
 
     let latest: ReturnType<typeof useReading<Widget>> | undefined;
     function Probe() {
-      latest = useReading(widgets, criteria<Widget>().where(["id", "=", "1"]));
+      latest = useReading(widgets, criteria<Widget>().selection(["id", "=", "1"]));
       return null;
     }
 
@@ -89,7 +89,7 @@ describe("useReading", () => {
     assert.equal(latest?.rows[0]?.id, "1");
 
     await act(async () => {
-      await latest!.refine(criteria<Widget>().where(["id", "=", "2"]));
+      await latest!.refine(criteria<Widget>().selection(["id", "=", "2"]));
     });
     assert.equal(latest?.rows[0]?.id, "2");
   });

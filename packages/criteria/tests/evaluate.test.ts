@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { filtered, matches, where } from "@sincpro/criteria";
+import { filtered, matches, selection } from "@sincpro/criteria";
 import { holds } from "@sincpro/criteria/engine";
 
 describe("one comparison, the way SQL answers it", () => {
@@ -83,18 +83,18 @@ describe("a record against a whole filter", () => {
 
   it("answers a tree the way the tree reads", () => {
     assert.equal(
-      matches(record, where.all(["name", "like", "labs"], ["rows", ">", 1000])),
+      matches(record, selection.all(["name", "like", "labs"], ["rows", ">", 1000])),
       true,
     );
     assert.equal(
-      matches(record, where.all(["name", "like", "labs"], ["rows", ">", 5000])),
+      matches(record, selection.all(["name", "like", "labs"], ["rows", ">", 5000])),
       false,
     );
     assert.equal(
-      matches(record, where.any(["rows", ">", 5000], ["producer", "is null", true])),
+      matches(record, selection.any(["rows", ">", 5000], ["producer", "is null", true])),
       true,
     );
-    assert.equal(matches(record, where.negate(["name", "=", "labs.csv"])), false);
+    assert.equal(matches(record, selection.negate(["name", "=", "labs.csv"])), false);
   });
 
   it("is answered by everything when there is no filter", () => {

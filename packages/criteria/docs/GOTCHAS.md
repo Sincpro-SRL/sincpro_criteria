@@ -28,7 +28,7 @@
 
 ## One filter that will not compile, or a typo that does
 
-- **Symptom:** `where.all(["a", "=", 1], ["b", "=", 2])` is refused with "Argument of type `"b"` is
+- **Symptom:** `selection.all(["a", "=", 1], ["b", "=", 2])` is refused with "Argument of type `"b"` is
   not assignable to parameter of type `"a"`"; or the other way round, a typo in a field name
   compiles against a typed builder.
 - **Cause:** TypeScript runs `Fields<T>` backwards. From the string `"a"` it concludes

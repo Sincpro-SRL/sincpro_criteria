@@ -82,11 +82,11 @@ the README if it changes what a caller writes.
 
 ```ts
 criteria<Dataset>()
-  .where(
+  .selection(
     ["encoding", "=", "utf-8"], // a condition is a triple; arguments are ANDed
     ["row_count", ">", 1000],
-    where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
-    where.negate(["name", "like", "draft"]),
+    selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
+    selection.negate(["name", "like", "draft"]),
   )
   .order("-registered_at", "name") // replaces; `-` is descending
   .limit(100) // one page

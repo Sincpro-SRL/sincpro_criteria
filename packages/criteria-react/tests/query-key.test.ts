@@ -13,7 +13,7 @@ describe("queryKeyFor", () => {
   it("packs the criteria under the given prefix", () => {
     const key = queryKeyFor(
       ["catalog", "widgets"],
-      criteria<Widget>().where(["id", "=", "1"]),
+      criteria<Widget>().selection(["id", "=", "1"]),
     );
     assert.equal(key[0], "catalog");
     assert.equal(key[1], "widgets");
@@ -21,14 +21,14 @@ describe("queryKeyFor", () => {
   });
 
   it("is the same key for two criteria that ask the same question", () => {
-    const a = queryKeyFor(["widgets"], criteria<Widget>().where(["id", "=", "1"]));
-    const b = queryKeyFor(["widgets"], criteria<Widget>().where(["id", "=", "1"]));
+    const a = queryKeyFor(["widgets"], criteria<Widget>().selection(["id", "=", "1"]));
+    const b = queryKeyFor(["widgets"], criteria<Widget>().selection(["id", "=", "1"]));
     assert.deepEqual(a, b);
   });
 
   it("is a different key for a different criteria", () => {
-    const a = queryKeyFor(["widgets"], criteria<Widget>().where(["id", "=", "1"]));
-    const b = queryKeyFor(["widgets"], criteria<Widget>().where(["id", "=", "2"]));
+    const a = queryKeyFor(["widgets"], criteria<Widget>().selection(["id", "=", "1"]));
+    const b = queryKeyFor(["widgets"], criteria<Widget>().selection(["id", "=", "2"]));
     assert.notDeepEqual(a, b);
   });
 
