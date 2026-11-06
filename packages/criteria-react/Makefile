@@ -33,6 +33,10 @@ build:
 	@npx tsc-alias -p tsconfig.build.json
 	@echo "✓ Build ready in ./dist"
 
+# The peer range on @sincpro/criteria follows the release: versioning is lockstep, so this
+# package always ships beside the criteria of its own major (`scripts/peer-range.sh`). A range
+# written by hand went stale — `^0.3.0` shipped with criteria 1.0, 1.1 and 2.0.
+#
 # `--package-lock=false`: without it, `npm version` (v7+) rebuilds its dependency tree as part
 # of the bump — including this package's own devDependency on `@sincpro/criteria` — against
 # the REAL registry, since npm doesn't read yarn.lock or yarn's workspace symlinks. That 404s
@@ -49,6 +53,7 @@ endif
 		npm version $(VERSION) --no-git-tag-version --package-lock=false && \
 			echo "✓ Version updated to $(VERSION)"; \
 	fi
+	@bash scripts/peer-range.sh $(VERSION)
 
 publish: build
 	@echo "📦 Publishing $(PACKAGE) to NPM..."
