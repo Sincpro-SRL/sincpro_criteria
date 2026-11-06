@@ -6,23 +6,26 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { criteria, dynamic, measure, merge, readFilter, where } from "@sincpro/criteria";
+import { criteria, dynamic, measure, merge, readFilter, selection } from "@sincpro/criteria";
 
 import type { Dataset } from "./fixtures";
 
 describe("typing is opt-in", () => {
   it("asks nothing of a caller that has no type yet", () => {
-    const q = criteria().where(["whatever", "=", 1], ["anything_else", ">", 2]);
+    const q = criteria().selection(["whatever", "=", 1], ["anything_else", ">", 2]);
     assert.ok(q.value.selection);
   });
 
   it("checks the field names when there is a record to check them against", () => {
-    const q = criteria<Dataset>().where(["encoding", "=", "utf-8"], ["row_count", ">", 1000]);
+    const q = criteria<Dataset>().selection(
+      ["encoding", "=", "utf-8"],
+      ["row_count", ">", 1000],
+    );
     assert.ok(q.value.selection);
   });
 
   it("refuses a field the record does not have", () => {
-    const q = criteria<Dataset>().where(
+    const q = criteria<Dataset>().selection(
       // @ts-expect-error 'encodig' is not a field of Dataset
       ["encodig", "=", "utf-8"],
     );
@@ -42,7 +45,7 @@ describe("typing is opt-in", () => {
   it("keeps one filter readable when its conditions name different fields", () => {
     // The trap this guards: inferring the record from the first field name and rejecting
     // every other one against it.
-    const filter = where.all(["a", "=", 1], ["b", "like", "x"], ["c", ">", 2]);
+    const filter = selection.all(["a", "=", 1], ["b", "like", "x"], ["c", ">", 2]);
     assert.ok(filter);
   });
 
@@ -82,7 +85,7 @@ describe("typing is opt-in", () => {
 
   it("keeps the record's type through a merge done on the builder", () => {
     const merged = criteria<Dataset>()
-      .where(["encoding", "=", "utf-8"])
+      .selection(["encoding", "=", "utf-8"])
       .merge(criteria<Dataset>().limit(10));
     const back: typeof merged.value.order = merged.value.order;
     assert.equal(back, undefined);
@@ -91,7 +94,7 @@ describe("typing is opt-in", () => {
 
 describe("a value that is read when the filter runs is typed too", () => {
   it("accepts the names the engine declares", () => {
-    const q = criteria<Dataset>().where(
+    const q = criteria<Dataset>().selection(
       ["registered_at", "<", dynamic.today()],
       ["registered_at", ">=", dynamic.today({ minus: { days: 30 }, startOf: "month" })],
       ["registered_at", "between", dynamic.period("this_month")],

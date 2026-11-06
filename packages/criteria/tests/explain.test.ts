@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { criteria, explain, measure, where } from "@sincpro/criteria";
+import { criteria, explain, measure, selection } from "@sincpro/criteria";
 
 import type { Dataset } from "./fixtures";
 import { datasetMeta } from "./fixtures";
@@ -9,7 +9,7 @@ import { datasetMeta } from "./fixtures";
 describe("a criteria in words", () => {
   it("reads as the sentence it is", () => {
     const q = criteria<Dataset>()
-      .where(["encoding", "=", "utf-8"], ["row_count", ">", 1000])
+      .selection(["encoding", "=", "utf-8"], ["row_count", ">", 1000])
       .order("-registered_at")
       .limit(100);
     assert.equal(
@@ -19,7 +19,7 @@ describe("a criteria in words", () => {
   });
 
   it("uses the model's own words when it has them", () => {
-    const q = criteria<Dataset>().where(["row_count", ">", 1000]);
+    const q = criteria<Dataset>().selection(["row_count", ">", 1000]);
     assert.equal(
       explain(q, { meta: datasetMeta, locale: "es" }),
       "Conjuntos, where Filas > 1000",
@@ -27,10 +27,10 @@ describe("a criteria in words", () => {
   });
 
   it("parenthesises a group so an or does not read as an and", () => {
-    const q = criteria<Dataset>().where(
-      where.all(
+    const q = criteria<Dataset>().selection(
+      selection.all(
         ["encoding", "=", "utf-8"],
-        where.any(["row_count", ">", 10], ["producer_id", "is null", true]),
+        selection.any(["row_count", ">", 10], ["producer_id", "is null", true]),
       ),
     );
     assert.equal(

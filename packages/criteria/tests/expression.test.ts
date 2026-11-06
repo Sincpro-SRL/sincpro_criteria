@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { conditionsOf, InvalidCriteria, readExpression, where } from "@sincpro/criteria";
+import { conditionsOf, InvalidCriteria, readExpression, selection } from "@sincpro/criteria";
 
 describe("reading a tree", () => {
   it("returns every leaf in reading order", () => {
-    const tree = where.all(
-      where.any(["a", "=", 1], ["b", "=", 2]),
-      where.negate(["c", "=", 3]),
+    const tree = selection.all(
+      selection.any(["a", "=", 1], ["b", "=", 2]),
+      selection.negate(["c", "=", 3]),
     )!;
     assert.deepEqual(
       conditionsOf(tree).map((one) => one.field),

@@ -32,7 +32,7 @@ export interface FromRowsOptions {
  *
  * @example
  * const datasets = resource(fromRows(rows, { identity: "dataset_id" }));
- * const page = await datasets.page(criteria().where(["encoding", "=", "utf-8"]).limit(20));
+ * const page = await datasets.page(criteria().selection(["encoding", "=", "utf-8"]).limit(20));
  */
 export function fromRows<T = AnyRecord>(
   rows: readonly T[],

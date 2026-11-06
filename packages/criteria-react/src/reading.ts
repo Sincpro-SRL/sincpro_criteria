@@ -36,7 +36,7 @@ export interface UseReadingResult<T> extends Omit<ReadingState<T>, "more"> {
  * function DatasetList({ resource }: Props) {
  *   const { rows, status, hasMore, more } = useReading(
  *     resource,
- *     criteria<Dataset>().where(["encoding", "=", "utf-8"]).limit(50),
+ *     criteria<Dataset>().selection(["encoding", "=", "utf-8"]).limit(50),
  *   );
  *   if (status === "loading") return <Spinner />;
  *   return <List rows={rows} onEndReached={more} hasMore={hasMore} />;
@@ -44,11 +44,11 @@ export interface UseReadingResult<T> extends Omit<ReadingState<T>, "more"> {
  *
  * @example
  * // medium: a saved permission merged with what the user typed, refined on every keystroke
- * import { merge, plain, where } from "@sincpro/criteria";
+ * import { merge, plain, selection } from "@sincpro/criteria";
  *
  * function DatasetSearch({ resource, typed }: Props) {
- *   const permission = criteria<Dataset>().where(where.any(["region", "=", "north"]));
- *   const asked = merge(plain(permission), plain(criteria<Dataset>().where(typed)));
+ *   const permission = criteria<Dataset>().selection(selection.any(["region", "=", "north"]));
+ *   const asked = merge(plain(permission), plain(criteria<Dataset>().selection(typed)));
  *   const { rows, refine } = useReading(resource, asked);
  *   // call refine(nextCriteria) again whenever `typed` changes
  *   return <List rows={rows} />;
@@ -58,14 +58,14 @@ export interface UseReadingResult<T> extends Omit<ReadingState<T>, "more"> {
  * // complex: AND(A, B, OR(AND(C, D), E), NOT(F)) — three real levels of nesting. useReading
  * // only needs the finished criteria; grouping is {@link useBuckets}'s job, not this one's.
  * function RecentRawUploads({ resource }: Props) {
- *   const q = criteria<Dataset>().where(
+ *   const q = criteria<Dataset>().selection(
  *     ["row_count", ">", 50],
  *     ["encoding", "!=", "latin-1"],
- *     where.any(
- *       where.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
+ *     selection.any(
+ *       selection.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
  *       ["registered_at", ">=", "2026-03-01T00:00:00.000Z"],
  *     ),
- *     where.negate(["name", "like", "draft"]),
+ *     selection.negate(["name", "like", "draft"]),
  *   );
  *   const { rows } = useReading(resource, q);
  *   return <List rows={rows} />;

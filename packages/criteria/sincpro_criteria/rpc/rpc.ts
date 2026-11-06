@@ -91,7 +91,7 @@ let nextId = 0;
  * const datasets = resource<Dataset>(
  *   rpcSource("/rpc", { read: "catalog.query.ListDatasets", group: "catalog.query.GroupDatasets" }),
  * );
- * await datasets.page(criteria<Dataset>().where(["encoding", "=", "utf-8"]));
+ * await datasets.page(criteria<Dataset>().selection(["encoding", "=", "utf-8"]));
  *
  * @example
  * // medium: a per-tenant context merged into every call, and error handling
@@ -114,17 +114,17 @@ let nextId = 0;
  * // complex: nested AND/OR/NOT, two grouping levels, two measures, a filter over the groups
  * // themselves, group-count paging AND row-count paging, and following a bucket's own cursor
  * // — the method name decides the shape, the filter travels through unchanged either way.
- * import { measure, resumingFrom, where } from "@sincpro/criteria";
+ * import { measure, resumingFrom, selection } from "@sincpro/criteria";
  *
  * const q = criteria<Dataset>()
- *   .where(
+ *   .selection(
  *     ["row_count", ">", 50],
  *     ["encoding", "!=", "latin-1"],
- *     where.any(
- *       where.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
+ *     selection.any(
+ *       selection.all(["tags", "contains", "raw"], ["producer_id", "!=", null]),
  *       ["registered_at", ">=", "2026-03-01T00:00:00.000Z"],
  *     ),
- *     where.negate(["name", "like", "draft"]),
+ *     selection.negate(["name", "like", "draft"]),
  *   )
  *   .groupBy("encoding", "producer_id")
  *   .measures({ total_rows: measure.sum("row_count"), avg_rows: measure.avg("row_count") })

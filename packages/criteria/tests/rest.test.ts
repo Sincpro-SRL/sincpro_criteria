@@ -39,7 +39,9 @@ describe("restSource — a Source that wraps fetch around pack/pageFrom", () => 
       restSource<Dataset>("/datasets", { fetch: fetchStub, meta: datasetMeta }),
     );
 
-    const page = await datasets.page(criteria<Dataset>().where(["encoding", "=", "utf-8"]));
+    const page = await datasets.page(
+      criteria<Dataset>().selection(["encoding", "=", "utf-8"]),
+    );
 
     assert.equal(page.rows.length, 1);
     assert.equal(page.count?.value, 1);

@@ -101,8 +101,8 @@ describe("resuming", () => {
 
 describe("merging through the builder", () => {
   it("is the same law", () => {
-    const saved = criteria().where(["a", "=", 1]).limit(20);
-    const typed = criteria().where(["b", ">", 2]);
+    const saved = criteria().selection(["a", "=", 1]).limit(20);
+    const typed = criteria().selection(["b", ">", 2]);
     assert.deepEqual(saved.merge(typed).value, {
       selection: {
         all: [readFilter(["a", "=", 1]), readFilter(["b", ">", 2])],

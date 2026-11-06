@@ -81,7 +81,7 @@ export function readFilter<T = AnyRecord>(filter: Filter<T>): Expression<T> {
  * One condition needs no wrapper, and **none is not a filter**: an empty `all` matches
  * everything, which is the opposite of what somebody who asked for nothing wanted.
  *
- * `.where(a, b)` already ANDs, so this is for the case where a list is built and may come out
+ * `.selection(a, b)` already ANDs, so this is for the case where a list is built and may come out
  * empty.
  *
  * @example
@@ -160,14 +160,14 @@ function read<T>(parts: (Filter<T> | undefined)[]): Expression<T>[] {
  * The three ways to put filters together, under one name.
  *
  * A namespace and not three loose exports: `all`, `any` and `not` are words every codebase
- * already uses, and one import — `where` — offers the three as soon as the dot is typed. It is
- * named after the place its result goes.
+ * already uses, and one import — `selection` — offers the three as soon as the dot is typed.
+ * It has the field's name: what it builds is what `Criteria.selection` holds.
  *
  * @example
- * .where(
+ * .selection(
  *   ["encoding", "=", "utf-8"],
- *   where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
- *   where.negate(["name", "like", "draft"]),
+ *   selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
+ *   selection.negate(["name", "like", "draft"]),
  * )
  */
-export const where = { all, any, negate, combined } as const;
+export const selection = { all, any, negate, combined } as const;

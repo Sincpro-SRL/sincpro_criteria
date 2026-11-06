@@ -14,7 +14,7 @@ export {
 export type { Shift, Window } from "@sincpro/criteria/criteria/dynamic";
 export { dynamic, isDynamic, readValue } from "@sincpro/criteria/criteria/dynamic";
 export type { Filter, Triple } from "@sincpro/criteria/criteria/filter";
-export { readFilter, where } from "@sincpro/criteria/criteria/filter";
+export { readFilter, selection } from "@sincpro/criteria/criteria/filter";
 export { measure, readMeasure } from "@sincpro/criteria/criteria/measure";
 
 /* ── what a criteria is ─────────────────────────────────────────────────────────────── */

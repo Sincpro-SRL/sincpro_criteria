@@ -101,7 +101,7 @@ describe("writing a dynamic value", () => {
   });
 
   it("fits where a filter fits, in a builder, a triple and a group", () => {
-    const q = criteria<Invoice>().where(
+    const q = criteria<Invoice>().selection(
       ["due", "<", dynamic.today()],
       ["owner_id", "=", dynamic.context("user_id")],
       ["total", ">", dynamic.field<Invoice>("credit_limit")],
@@ -119,7 +119,11 @@ describe("writing a dynamic value", () => {
 
 describe("reading one that came from outside", () => {
   it("keeps it through a URL and back", () => {
-    const q = criteria<Invoice>().where(["due", "<", dynamic.today({ minus: { days: 30 } })]);
+    const q = criteria<Invoice>().selection([
+      "due",
+      "<",
+      dynamic.today({ minus: { days: 30 } }),
+    ]);
 
     assert.deepEqual(unpack(pack(q)), q.value);
     assert.deepEqual(readCriteria(JSON.parse(JSON.stringify(q.value))), q.value);
@@ -270,7 +274,7 @@ describe("checking one against the model", () => {
 
   it("lets a value the server reads go through unread", () => {
     const { criteria: kept, dropped } = validate(
-      criteria<Dataset>().where([
+      criteria<Dataset>().selection([
         "registered_at",
         ">=",
         dynamic.today({ minus: { days: 30 } }),
@@ -284,7 +288,7 @@ describe("checking one against the model", () => {
 
   it("keeps a column against another of the same type", () => {
     const { dropped } = validate(
-      criteria().where(["row_count", ">", dynamic.field("row_limit")]),
+      criteria().selection(["row_count", ">", dynamic.field("row_limit")]),
       meta,
     );
 
@@ -293,7 +297,7 @@ describe("checking one against the model", () => {
 
   it("drops one that names a field the model lacks, saying which", () => {
     const { criteria: kept, dropped } = validate(
-      criteria().where(["row_count", ">", dynamic.field("nowhere")]),
+      criteria().selection(["row_count", ">", dynamic.field("nowhere")]),
       meta,
     );
 
@@ -302,9 +306,12 @@ describe("checking one against the model", () => {
   });
 
   it("drops a column against another of another type, or with an operator that does not compare", () => {
-    const text = validate(criteria().where(["row_count", ">", dynamic.field("name")]), meta);
+    const text = validate(
+      criteria().selection(["row_count", ">", dynamic.field("name")]),
+      meta,
+    );
     const within = validate(
-      criteria().where(["row_count", "in", dynamic.field("row_limit")]),
+      criteria().selection(["row_count", "in", dynamic.field("row_limit")]),
       meta,
     );
 
@@ -314,7 +321,7 @@ describe("checking one against the model", () => {
 
   it("refuses a period asked with anything but between", () => {
     const { refused } = validate(
-      criteria().where(["registered_at", "=", dynamic.period("this_month")]),
+      criteria().selection(["registered_at", "=", dynamic.period("this_month")]),
       meta,
     );
 

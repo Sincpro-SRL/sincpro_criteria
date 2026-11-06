@@ -55,7 +55,9 @@ describe("rpcSource — a Source over the framework's JSON-RPC 2.0 entrypoint", 
       ),
     );
 
-    const page = await datasets.page(criteria<Dataset>().where(["encoding", "=", "utf-8"]));
+    const page = await datasets.page(
+      criteria<Dataset>().selection(["encoding", "=", "utf-8"]),
+    );
 
     assert.equal(page.rows.length, 1);
     assert.equal(page.meta, datasetMeta, "the definition the source was given");

@@ -70,7 +70,7 @@ export interface Resource<T = AnyRecord> {
  * const reading = datasets.read(criteria<Dataset>().order("-registered_at").limit(100));
  * await reading.load();
  *
- * for await (const dataset of datasets.all(criteria<Dataset>().where(["encoding", "=", "utf-8"]))) {
+ * for await (const dataset of datasets.all(criteria<Dataset>().selection(["encoding", "=", "utf-8"]))) {
  *   // every matching row, one page at a time, without a cursor in sight
  * }
  *
@@ -78,12 +78,12 @@ export interface Resource<T = AnyRecord> {
  * // Three plain AND conditions, an OR, a NOT, two grouping levels, two measures, and a
  * // filter over the groups themselves — one criteria, one call.
  * const q = criteria<Dataset>()
- *   .where(
+ *   .selection(
  *     ["row_count", ">", 100],
  *     ["encoding", "!=", "latin-1"],
  *     ["registered_at", ">=", "2026-01-01T00:00:00.000Z"],
- *     where.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
- *     where.negate(["name", "like", "draft%"]),
+ *     selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
+ *     selection.negate(["name", "like", "draft%"]),
  *   )
  *   .groupBy("encoding", "producer_id")
  *   .measures({ total_rows: measure.sum("row_count"), avg_rows: measure.avg("row_count") })

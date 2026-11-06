@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { criteria, measure, readFilter } from "@sincpro/criteria";
+import { criteria, measure, readFilter, selection } from "@sincpro/criteria";
 
 import type { Dataset } from "./fixtures";
 
 describe("the builder", () => {
   it("is the plain object and nothing else", () => {
-    const q = criteria<Dataset>().where(["encoding", "=", "utf-8"]).limit(100);
+    const q = criteria<Dataset>().selection(["encoding", "=", "utf-8"]).limit(100);
     assert.deepEqual(q.value, {
       selection: { field: "encoding", operator: "=", value: "utf-8" },
       pagination: { limit: 100 },
@@ -17,23 +17,45 @@ describe("the builder", () => {
 
   it("never touches the one it came from", () => {
     const base = criteria<Dataset>().limit(50);
-    const refined = base.where(["name", "like", "labs"]);
+    const refined = base.selection(["name", "like", "labs"]);
     assert.equal(base.value.selection, undefined);
     assert.deepEqual(refined.value.pagination, { limit: 50 });
   });
 
   it("accumulates the filter with AND, flat", () => {
     const q = criteria<Dataset>()
-      .where(["encoding", "=", "utf-8"])
-      .where(["row_count", ">", 1000]);
+      .selection(["encoding", "=", "utf-8"])
+      .selection(["row_count", ">", 1000]);
     assert.deepEqual(q.value.selection, {
       all: [readFilter(["encoding", "=", "utf-8"]), readFilter(["row_count", ">", 1000])],
     });
   });
 
   it("ignores the parts that are not there", () => {
-    const q = criteria<Dataset>().where(undefined);
+    const q = criteria<Dataset>().selection(undefined);
     assert.equal(q.value.selection, undefined);
+  });
+
+  it("writes selection, the field the framework reads", () => {
+    const q = criteria<Dataset>().selection(
+      ["encoding", "=", "utf-8"],
+      selection.any(["tags", "contains", "raw"], ["producer_id", "is null", true]),
+      selection.negate(["name", "like", "draft"]),
+    );
+
+    assert.deepEqual(q.value.selection, {
+      all: [
+        { field: "encoding", operator: "=", value: "utf-8" },
+        {
+          any: [
+            { field: "tags", operator: "contains", value: "raw" },
+            { field: "producer_id", operator: "is null", value: true },
+          ],
+        },
+        { negate: { field: "name", operator: "like", value: "draft" } },
+      ],
+    });
+    assert.equal("where" in q.value, false);
   });
 });
 
