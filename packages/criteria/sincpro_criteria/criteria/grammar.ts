@@ -318,9 +318,9 @@ export interface Grouping<T = AnyRecord> {
   /**
    * A filter over what the groups measured, not over the rows: `count > 10`.
    *
-   * The names it may use are the ones in `measures` plus `count`. `where` filters the rows
-   * that make the groups; this filters the groups those rows made — which is why it is not
-   * called `where`: it reads measures, not fields.
+   * The names it may use are the ones in `measures` plus `count`. `selection` filters the rows
+   * that make the groups; this filters the groups those rows made — it reads measures, not
+   * fields. Its name is the engine's (`grouping.where_measures`), kept as the engine reads it.
    */
   where_measures?: Expression;
 
