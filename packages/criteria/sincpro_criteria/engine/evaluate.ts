@@ -117,11 +117,16 @@ function answers<T>(record: T, filter: Filter<T>, meta?: Meta): boolean {
   if ("through" in filter) {
     // Some record the relation holds answers the selection — none held, none does.
     const held = (record as AnyRecord)[filter.through];
-    const related = Array.isArray(held)
-      ? held
-      : held === null || held === undefined
+    // A to-many travels as its collection, `{items, count, cursor}`: its records are the items.
+    const items =
+      typeof held === "object" && held !== null && !Array.isArray(held) && "items" in held
+        ? ((held as { items?: unknown }).items ?? [])
+        : held;
+    const related = Array.isArray(items)
+      ? items
+      : items === null || items === undefined
         ? []
-        : [held];
+        : [items];
     const definition = meta?.fields[filter.through]?.definition ?? undefined;
     return related.some((one) => answers(one as AnyRecord, filter.selection, definition));
   }

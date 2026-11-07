@@ -119,3 +119,72 @@ describe("a computation written down, answered as the server answers it", () => 
     assert.equal(valueOf({ op: "*", args: [{ $: "field", name: "qty" }, 2] }, {}), null);
   });
 });
+
+describe("a to-many published as the collection a read answers", () => {
+  const contract: Contract = {
+    type: "object",
+    properties: {
+      id: { type: "string", "x-sincpro": { type: "text" } },
+      entries: {
+        type: "object",
+        properties: {
+          items: { type: "array", items: { $ref: "#/$defs/Entry" } },
+          count: { anyOf: [{ $ref: "#/$defs/Count" }, { type: "null" }] },
+          cursor: { anyOf: [{ type: "string" }, { type: "null" }] },
+        },
+        "x-sincpro": {
+          type: "one2many",
+          relation: "Entry",
+          many: true,
+          identified_by: "ledger_id",
+          reference: true,
+        },
+      },
+    },
+    "x-sincpro": { entity: "Ledger", identity: "id" },
+  };
+  const entry: Contract = {
+    type: "object",
+    properties: { amount: { type: "string", "x-sincpro": { type: "number", exact: true } } },
+    "x-sincpro": { entity: "Entry", identity: "id" },
+  };
+
+  it("is a relation that says it is a reference, its definition the related contract's", () => {
+    const field = metaFromContract(contract, { Entry: entry }).fields["entries"];
+
+    assert.equal(field?.kind, "relation");
+    assert.equal(field?.many, true);
+    assert.equal(field?.reference, true);
+    assert.equal(field?.identified_by, "ledger_id");
+    assert.deepEqual(Object.keys(field?.definition?.fields ?? {}), ["amount"]);
+  });
+});
+
+describe("a to-many held as its collection answers a filter through it, and fills a page", () => {
+  it("reads the collection's items, as the server does", async () => {
+    const { matches, recordsOf } = await import("@sincpro/criteria");
+    const record = {
+      id: "l1",
+      entries: {
+        items: [{ amount: "5" }, { amount: "0" }],
+        count: { value: 2, exact: true },
+        cursor: null,
+      },
+    };
+
+    assert.equal(
+      matches(record, {
+        through: "entries",
+        selection: { field: "amount", operator: "=", value: "5" },
+      } as never),
+      true,
+    );
+    assert.deepEqual(
+      recordsOf({
+        ledgers: { items: [record], count: null, cursor: null },
+        cursor: null,
+      } as never),
+      [record],
+    );
+  });
+});

@@ -30,6 +30,21 @@ export interface RestSourceOptions {
    * of the model it is (`model_version`), never the model again.
    */
   meta?: Meta;
+
+  /**
+   * How the body of a successful answer is read into the envelope a page is built from —
+   * JSON by default. The seam a platform plugs another format into (a Parquet page, decoded by
+   * @sincpro/client-framework) without this package knowing any format but JSON. It decides by
+   * the response's headers (`Content-Type`) and answers `undefined` to leave the body to JSON —
+   * a decoder that reads the body has taken it, and answers the envelope. `signal` is the
+   * reading's own: a decoder of a large body stops when the reading is abandoned. A refusal
+   * (non-2xx) never reaches it: it is a `RestError`, its problem read as JSON. JSON-RPC
+   * (`rpcSource`) has no such seam — its answers are JSON by the protocol.
+   */
+  decode?: (
+    response: Response,
+    signal?: AbortSignal,
+  ) => Promise<(Envelope & AnyRecord) | undefined>;
 }
 
 /**
@@ -132,6 +147,10 @@ export function restSource<T = AnyRecord>(
     const headers =
       typeof options.headers === "function" ? await options.headers() : options.headers;
     const response = await doFetch(url, { headers, signal });
+    if (response.ok && options.decode !== undefined) {
+      const decoded = await options.decode(response, signal);
+      if (decoded !== undefined) return decoded;
+    }
     const body = await response.text();
     if (!response.ok) throw new RestError(response.status, url, body);
     return JSON.parse(body) as Envelope & AnyRecord;

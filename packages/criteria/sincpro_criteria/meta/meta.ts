@@ -221,6 +221,14 @@ export interface FieldMeta {
   /** Whether a filter may cross this relation (`through`): some related record answers it. */
   navigable?: boolean;
 
+  /**
+   * A to-many whose records are other aggregates — sincpro_framework's `References[Invoice]`, or
+   * a foreign key declared `owned=False`: listed and searched a page at a time, never edited
+   * as lines of the record, never written through it. Absent for the parts a record holds
+   * and saves whole.
+   */
+  reference?: boolean;
+
   /** How a list adds the field up at its foot (`sum`, `avg`…), when the entity says so. */
   total?: string | null;
 

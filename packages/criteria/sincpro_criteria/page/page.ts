@@ -139,6 +139,10 @@ export type PaginatedResponse<Field extends string, T> = { [K in Field]: T[] } &
  * The one shape every source hands back and every reading holds. A grouped answer is a
  * `Page<Bucket>`: the engine answers buckets under a field name of their own — `groups` —
  * with the same envelope around them, so nothing here needs a second type for it.
+ *
+ * In the shared vocabulary a page is an `EntityCollection` — sincpro_framework's and
+ * @sincpro/client-framework's word for records, how many there are and the cursor to go on —
+ * read together with the definition of its model: `rows` are its `items`.
  */
 export interface Page<T> {
   rows: T[];
@@ -202,6 +206,13 @@ export function recordsOf<T>(answer: Envelope & Record<string, unknown>): T[] {
   for (const [name, value] of Object.entries(answer)) {
     if (ENVELOPE_FIELDS.has(name)) continue;
     if (Array.isArray(value)) return value as T[];
+    // The records held as a collection (`{items, count, cursor}`): its items.
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      Array.isArray((value as { items?: unknown }).items)
+    )
+      return (value as { items: T[] }).items;
   }
   return [];
 }
