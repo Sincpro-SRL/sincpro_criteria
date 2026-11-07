@@ -171,3 +171,48 @@ describe("restSource — a Source that wraps fetch around pack/pageFrom", () => 
     );
   });
 });
+
+describe("restSource — a body in another format, read by a decoder the platform plugs", () => {
+  it("reads the envelope the decoder answers, and leaves a JSON body to JSON", async () => {
+    const parquetStub = (async () =>
+      new Response(new Uint8Array([80, 65, 82, 49]), {
+        status: 200,
+        headers: { "content-type": "application/vnd.apache.parquet" },
+      })) as typeof fetch;
+    const decode = async (response: Response) =>
+      response.headers.get("content-type") === "application/vnd.apache.parquet"
+        ? { ...OK_PAGE, datasets: [{ dataset_id: "d9", name: "from.parquet" }] }
+        : undefined;
+
+    const fromParquet = await resource<Dataset>(
+      restSource<Dataset>("/datasets", { fetch: parquetStub, meta: datasetMeta, decode }),
+    ).page(criteria<Dataset>());
+    const { fetchStub } = stub(200, OK_PAGE);
+    const fromJson = await resource<Dataset>(
+      restSource<Dataset>("/datasets", { fetch: fetchStub, meta: datasetMeta, decode }),
+    ).page(criteria<Dataset>());
+
+    assert.deepEqual(fromParquet.rows, [{ dataset_id: "d9", name: "from.parquet" }]);
+    assert.deepEqual(fromJson.rows, OK_PAGE.datasets);
+  });
+});
+
+describe("restSource — a refusal never reaches the decoder", () => {
+  it("throws a RestError with the problem read as JSON, whatever the decoder", async () => {
+    let decoded = 0;
+    const refused = (async () =>
+      new Response(JSON.stringify({ status: 403, title: "Forbidden", kind: "forbidden" }), {
+        status: 403,
+      })) as typeof fetch;
+    const source = restSource<Dataset>("/datasets", {
+      fetch: refused,
+      decode: async () => {
+        decoded += 1;
+        return undefined;
+      },
+    });
+
+    await assert.rejects(resource<Dataset>(source).page(criteria<Dataset>()), RestError);
+    assert.equal(decoded, 0);
+  });
+});

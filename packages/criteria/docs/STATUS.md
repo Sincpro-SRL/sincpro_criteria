@@ -292,8 +292,10 @@ Done 2026-11-04 against the framework's `feat_metamodel` branch. A criteria's fi
 definition is read once from the contract the bounded context publishes (`metaFromContract`,
 `versionOf`, handed to `restSource`/`rpcSource` as `meta`). `{through, selection}` crosses a
 relation, answered by `matches` and checked by `validate` (`not_navigable`). `FieldMeta` reads
-what the contract adds: `widget`, `affects`, `judged_by`, `holds`, `navigable`, `total`, the
-`uuid` type. Held by `tests/contract.test.ts` (`contract-parity.json`, written by the framework)
+what the contract adds: `widget`, `affects`, `judged_by`, `holds`, `navigable`, `reference` (a
+to-many that only references other aggregates), `total`, the `uuid` type. A to-many published as
+the collection a read answers (`{items, count, cursor}`) is read as the relation it is, and
+`through` and `recordsOf` read its items. Held by `tests/contract.test.ts` (`contract-parity.json`, written by the framework)
 and the `crossing` cases of `criteria-parity.json`. `contract-parity.json` is a fourth fixture copied byte for byte, listed
 in `CONTRACT` and in `.prettierignore` like the other three.
 

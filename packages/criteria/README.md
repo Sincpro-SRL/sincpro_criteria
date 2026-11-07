@@ -283,6 +283,15 @@ failure read into one shape (`kind`, `reason`, `next_step`, `retryable`, `retry_
 refusal once whichever wire it came over. `readProblem(body)` reads one from any body.
 There is no `pivot`: no endpoint anywhere follows a convention for one yet.
 
+A page may come in another format than JSON — a search of millions answers Parquet to a client
+that reads it. `decode` is the seam: it decides by the response's headers, answers the envelope
+JSON would have sent, or `undefined` to leave the body to JSON. This package knows no format but
+JSON; @sincpro/client-framework plugs its Parquet decoder here.
+
+```ts
+restSource("/entries", { decode: (response, signal) => myDecoder(response, signal) });
+```
+
 `@sincpro/criteria/rpc` does the same over the framework's own JSON-RPC 2.0 entrypoint — every
 read `Query` there carries one field, `criteria`, so a method call is `{criteria: plain(...)}`
 in `params`, no packing needed (there is no URL length to save):

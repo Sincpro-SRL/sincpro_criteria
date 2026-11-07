@@ -32,6 +32,7 @@ export interface PropertyVocabulary {
   parent_field?: string;
   related_field?: string;
   navigable?: boolean;
+  reference?: boolean;
   holds?: Expression;
   computes?: Formula;
   affects?: string[];
