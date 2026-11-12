@@ -143,6 +143,32 @@ describe("a page out of rows in hand", () => {
     }
   });
 
+  it("places NULL first ascending and last descending, and walks past it like a value", () => {
+    const everything = (order: "producer_id" | "-producer_id") =>
+      ids(answer(rows, criteria<Dataset>().order(order).limit(10), datasetMeta));
+    assert.deepEqual(everything("producer_id"), ["d2", "d1", "d3", "d4", "d5"]);
+    assert.deepEqual(everything("-producer_id"), ["d5", "d4", "d3", "d1", "d2"]);
+
+    for (const order of ["producer_id", "-producer_id"] as const) {
+      for (const limit of [1, 2, 3, 4]) {
+        const base = criteria<Dataset>().order(order).limit(limit);
+        const walked: string[] = [];
+        let cursor: string | null = null;
+        for (let guard = 0; guard < 20; guard += 1) {
+          const page: ReturnType<typeof answer<Dataset>> = answer(
+            rows,
+            cursor === null ? base : base.cursor(cursor),
+            datasetMeta,
+          );
+          walked.push(...ids(page));
+          cursor = page.cursor;
+          if (cursor === null) break;
+        }
+        assert.deepEqual(walked, everything(order), `${order}, limit ${limit}`);
+      }
+    }
+  });
+
   it("counts rows instead, when a grid jumps to a page", () => {
     const page = answer(
       rows,
@@ -175,9 +201,9 @@ describe("a page out of rows in hand", () => {
     assert.equal(page.rows.length, 5);
   });
 
-  it("refuses a page ordered by a column it would lose rows on", () => {
+  it("refuses a page ordered by a list, which has no order to page by", () => {
     assert.throws(
-      () => answer(rows, criteria<Dataset>().order("producer_id"), datasetMeta),
+      () => answer(rows, criteria<Dataset>().order("tags"), datasetMeta),
       InvalidCriteria,
     );
   });

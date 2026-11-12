@@ -159,7 +159,8 @@ export interface FieldMeta {
   /**
    * The module that adds this field to the entity, by class name (`"MoveDelivery"`); absent for a
    * field the entity has itself. A record that has no such extension holds nothing there, so the
-   * server sends it nullable and not sortable: a screen can group the fields by owner, and show
+   * server sends it nullable, ordered with `NULL` where the record lacks it: a screen can group
+   * the fields by owner, and show
    * the ones of a module the record lacks as empty. Nothing about filtering changes: it is
    * filtered like any other field.
    */
@@ -185,8 +186,9 @@ export interface FieldMeta {
   visible_when?: Expression | null;
 
   /**
-   * False for every nullable column: a keyset comparison omits rows holding NULL, so
-   * ordering by one loses rows from the pagination in silence.
+   * False for a list, a translation, a relation or an embedded value, which no order reads. A
+   * nullable column is sortable: `NULL` comes first ascending and last descending, and the
+   * keyset walks it.
    */
   sortable: boolean;
 
@@ -298,7 +300,7 @@ export interface Meta {
   /**
    * How a typed text finds a record, as the entity declared it: a criteria as the engine writes
    * it, whose `where` holds `dynamic.param("text")` where the text goes. `null` when the entity
-   * searches nothing. {@link searchOver} and {@link matching} fill it.
+   * searches nothing. {@link searchOver} and {@link matching} fill it, word by word.
    */
   search?: Record<string, unknown> | null;
 
@@ -366,10 +368,8 @@ export function fieldsThatFilter(meta: Meta | null | undefined): string[] {
 }
 
 /**
- * The fields a page may be ordered by.
- *
- * A nullable column is not among them, and that is not a detail: a page ordered by one
- * silently drops the rows that hold no value.
+ * The fields a page may be ordered by: what the model says is `sortable`. A nullable column is
+ * among them — `NULL` has a place in the order, first ascending and last descending.
  */
 export function fieldsThatSort(meta: Meta | null | undefined): string[] {
   if (meta == null) return [];
@@ -493,7 +493,7 @@ export function choicesOf(
  * the same "no filter" a blank box already answers — rather than throwing on a screen that is
  * still waiting for its first page.
  *
- * @param text - what the person typed; blank means no filter at all
+ * @param text - what the person typed, read word by word; blank means no filter at all
  * @returns the expression, or `undefined` when there is nothing to search on
  *
  * @example
@@ -580,40 +580,65 @@ function isTextPlaceholder(value: unknown): boolean {
 }
 
 /**
- * A search template's filter with the text in place of every placeholder — the whole value, or
- * each placeholder of a list. A condition holding one is dropped when there is no text, and a
- * group left with nothing goes with it: the engine's `with_text`, leaf for leaf.
+ * A search template's filter with one word in place of every placeholder — the whole value, or
+ * each placeholder of a list. With no word, a condition holding one is dropped, and a group
+ * left with nothing goes with it.
  */
-function withText(expression: Expression, text: string): Expression | undefined {
+function filledWith(expression: Expression, word: string): Expression | undefined {
   if (isCondition(expression)) {
     const { value } = expression;
     const holds = Array.isArray(value)
       ? value.some(isTextPlaceholder)
       : isTextPlaceholder(value);
     if (!holds) return expression;
-    if (text.length === 0) return undefined;
+    if (word.length === 0) return undefined;
     return {
       ...expression,
       value: Array.isArray(value)
-        ? value.map((one) => (isTextPlaceholder(one) ? text : one))
-        : text,
+        ? value.map((one) => (isTextPlaceholder(one) ? word : one))
+        : word,
     };
   }
   if (isNegate(expression)) {
-    const inner = withText(expression.negate, text);
+    const inner = filledWith(expression.negate, word);
     return inner === undefined ? undefined : { negate: inner };
   }
   if ("through" in expression) {
-    const inner = withText(expression.selection, text);
+    const inner = filledWith(expression.selection, word);
     return inner === undefined
       ? undefined
       : { through: expression.through, selection: inner };
   }
   const grouped = isAll(expression) ? expression.all : expression.any;
   const parts = grouped
-    .map((part) => withText(part, text))
+    .map((part) => filledWith(part, word))
     .filter((part): part is Expression => part !== undefined);
   if (parts.length === 0) return undefined;
   if (parts.length === 1) return parts[0];
   return isAll(expression) ? { all: parts } : { any: parts };
+}
+
+/**
+ * A search template's filter with what a person typed, read word by word: each word has to
+ * appear in some field the template searches — the engine's `with_text`.
+ *
+ * The text is split on whitespace, so a code such as `T-1` or `1.2.3` stays one word. The
+ * template filled once per word is joined by `all`, an `all` spliced rather than nested. No word
+ * drops every condition that holds the placeholder and keeps the rest of the template.
+ *
+ * @example
+ * // template: {any: [number starts with TEXT, title like TEXT]}
+ * withText(template, "factura 2026");
+ * // {all: [{any: [number starts with "factura", title like "factura"]},
+ * //        {any: [number starts with "2026", title like "2026"]}]}
+ */
+function withText(expression: Expression, text: string): Expression | undefined {
+  const words = text.split(/\s+/).filter((word) => word.length > 0);
+  if (words.length === 0) return filledWith(expression, "");
+  const parts = words
+    .map((word) => filledWith(expression, word))
+    .filter((part): part is Expression => part !== undefined)
+    .flatMap((part) => (isAll(part) ? part.all : [part]));
+  if (parts.length === 0) return undefined;
+  return parts.length === 1 ? parts[0] : { all: parts };
 }

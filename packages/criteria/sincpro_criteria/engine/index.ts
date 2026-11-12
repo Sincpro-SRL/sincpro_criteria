@@ -1,3 +1,4 @@
+export * from "@sincpro/criteria/engine/accents";
 export * from "@sincpro/criteria/engine/answer";
 export * from "@sincpro/criteria/engine/compare";
 export * from "@sincpro/criteria/engine/cursor";

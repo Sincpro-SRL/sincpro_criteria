@@ -74,10 +74,12 @@ The operators are the symbols the model definition publishes in `ops`, so what a
 reads and what you write are the same vocabulary — there is no table translating `gt` to `>`
 anywhere.
 
-Text is searched two ways, both case-insensitive: `like` contains the value anywhere, and
-`starts with` is a prefix — `["code", "starts with", "1.2.3"]` finds `1.2.30`, not
-`1.2.1.2.3`. In either, `%` and `_` are the text itself, never wildcards: `50%` finds
-`Descuento 50% off` and nothing that merely starts with `50`.
+Text is searched two ways, both ignoring case and accents: `like` contains the value anywhere,
+and `starts with` is a prefix — `["code", "starts with", "1.2.3"]` finds `1.2.30`, not
+`1.2.1.2.3`, and `["name", "like", "impresion"]` finds `Impresión`. In either, `%` and `_` are
+the text itself, never wildcards: `50%` finds `Descuento 50% off` and nothing that merely starts
+with `50`. `fold` (from `@sincpro/criteria/engine`) is that reading of a text, for a platform
+that stores a key to search by.
 
 **A filter crosses a relation** with `{through, selection}`: it holds when some record the
 relation holds — several, one or none — answers the selection, written over that record's own
@@ -203,7 +205,7 @@ const datasets = resource<Dataset>(restSource("/datasets", { meta }));
 
 ```ts
 fieldsThatFilter(meta); // what a filter may name
-fieldsThatSort(meta); // never a nullable column: a page ordered by one loses rows
+fieldsThatSort(meta); // never a list; a nullable column orders NULL first, then last descending
 operatorsFor(meta, "row_count"); // ["=", "!=", "<", "<=", ">", ">=", "between", "in", "not in"]
 labelOf(meta, "row_count", "es"); // "Filas"
 choicesOf(meta, "priority", "es"); // [{value: "high", label: "Alta"}, …] — a select over an enum
@@ -214,7 +216,9 @@ matching(meta, typed); // what a many2one select sends: the template, 8 referenc
 
 `meta.search` is the entity's `DEFAULT_LITERAL_SEARCH`: a criteria whose `selection` holds
 `dynamic.param("text")` where the typed text goes. `searchOver` and `matching` fill it exactly
-as the engine's own `matching` does, so a select finds what the backend's select would.
+as the engine's own `matching` does, so a select finds what the backend's select would: word by
+word, each word in some field the template searches — `factura 2026` finds the record holding
+`factura` in one field and `2026` in another, and a code such as `T-1` stays one word.
 
 When the rows came from somewhere that says nothing about them, `describeRows(rows)` reads a
 definition off the rows themselves.
@@ -229,9 +233,10 @@ const { criteria: checked, dropped, refused } = validate(q, meta);
   operator a type does not take, a value that will not read. A dropped filter always _widens_
   the result, so saying it out loud is enough — and a shared link outlives the schema it was
   written against.
-- **refused** — the whole request would fail. Ordering by a nullable column is the one that
-  matters: a page ordered by one silently loses the rows that hold no value. A menu can grey
-  the entry out instead of finding out later.
+- **refused** — the whole request would fail: ordering by a field that has no order to page by
+  (a list, a translation, a relation). A menu can grey the entry out instead of finding out
+  later. A nullable column is not refused: `NULL` comes first ascending and last descending,
+  where the server's `ORDER BY` puts it, so a cursor minted on either side reads on the other.
 
 ### The read itself, over rows in hand
 

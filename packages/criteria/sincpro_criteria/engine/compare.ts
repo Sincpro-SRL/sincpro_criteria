@@ -120,10 +120,11 @@ export function sameValue(mine: unknown, theirs: unknown, exact = false): boolea
 /**
  * Where one value falls against another: negative, zero or positive.
  *
- * Missing values sort last, which is the one decision here that is not the database's: the
- * engine refuses to page by a nullable column precisely because the answer is arbitrary. This
- * only has to be consistent so that a local sort is stable. On a field the model marks `exact`,
- * two decimals compare as numbers: `"10.00"` comes after `"9.5"`.
+ * A missing value comes last here. A filter never reaches this with one — `NULL` compares to
+ * nothing, and `matches` answers before asking — and a grouping orders an empty measure last.
+ * The rows of a page are ordered by {@link placeValues} instead, which puts `NULL` where the
+ * engine's `ORDER BY` puts it. On a field the model marks `exact`, two decimals compare as
+ * numbers: `"10.00"` comes after `"9.5"`.
  */
 export function compareValues(mine: unknown, theirs: unknown, exact = false): number {
   if (missing(mine) && missing(theirs)) return 0;
@@ -138,6 +139,23 @@ export function compareValues(mine: unknown, theirs: unknown, exact = false): nu
   if (left < right) return -1;
   if (left > right) return 1;
   return 0;
+}
+
+/**
+ * Where one value falls against another in the order of a page: `NULL` before every value, so
+ * first ascending and last descending — where the engine's `ORDER BY … NULLS FIRST / NULLS
+ * LAST` puts it, and where its keyset looks for it. A cursor minted on one side reads on the
+ * other only if both place `NULL` alike.
+ *
+ * @example
+ * placeValues(null, "ana"); // -1 — NULL comes first ascending
+ * placeValues("ana", "beto"); // -1 — any two values compare as `compareValues` says
+ */
+export function placeValues(mine: unknown, theirs: unknown, exact = false): number {
+  if (missing(mine) && missing(theirs)) return 0;
+  if (missing(mine)) return -1;
+  if (missing(theirs)) return 1;
+  return compareValues(mine, theirs, exact);
 }
 
 /** Whether a value is a list with nothing in it — the question an empty list asks. */
