@@ -93,8 +93,8 @@ export function validate<T = AnyRecord>(written: CriteriaLike<T>, meta: Meta): V
         field: sort.field,
         reason: "not_sortable",
         message:
-          `cannot order by '${sort.field}': it is nullable, and a page ordered by a nullable ` +
-          "column silently drops the rows that hold no value",
+          `cannot order by '${sort.field}': a list, a translation, a relation or an embedded ` +
+          "value has no order to page by",
       });
     }
   }

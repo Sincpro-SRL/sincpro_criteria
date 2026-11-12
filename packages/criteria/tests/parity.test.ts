@@ -18,8 +18,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import type { Expression } from "@sincpro/criteria";
-import { conditionsOf, OPERATORS, readExpression } from "@sincpro/criteria";
+import type { Expression, Meta } from "@sincpro/criteria";
+import { conditionsOf, OPERATORS, readExpression, searchOver } from "@sincpro/criteria";
 import { filtered } from "@sincpro/criteria/engine";
 
 interface Case {
@@ -28,10 +28,17 @@ interface Case {
   expected: string[];
 }
 
+interface LiteralCase {
+  name: string;
+  text: string;
+  expected: string[];
+}
+
 interface Fixtures {
   rows: Record<string, unknown>[];
   cases: Case[];
   crossing: { rows: Record<string, unknown>[]; cases: Case[] };
+  literal: { template: unknown; cases: LiteralCase[] };
 }
 
 const fixtures = JSON.parse(
@@ -54,6 +61,20 @@ describe("what the engine answers, against what the Python suite says it must", 
       const selection = one.selection === null ? undefined : readExpression(one.selection);
       assert.deepEqual(
         filtered(fixtures.crossing.rows, selection).map((row) => row.id),
+        one.expected,
+      );
+    });
+  }
+
+  for (const one of fixtures.literal.cases) {
+    it(`a typed text, read by the search template: ${one.name}`, () => {
+      // Only what `searchOver` reads of a definition: the template where the text goes.
+      const meta = {
+        search: { selection: fixtures.literal.template },
+        fields: {},
+      } as unknown as Meta;
+      assert.deepEqual(
+        filtered(fixtures.rows, searchOver(meta, one.text)).map((row) => row.id),
         one.expected,
       );
     });

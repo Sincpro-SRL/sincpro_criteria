@@ -221,7 +221,7 @@ describe("rows with nothing said about them", () => {
     );
   });
 
-  it("reads the types it can see, and refuses to sort by a column that is sometimes empty", () => {
+  it("reads the types it can see, and sorts by a column that is sometimes empty", () => {
     const meta = describeRows([
       { id: 1, size: 2, label: "a", at: "2026-01-01T00:00:00.000Z", tags: ["x"] },
       { id: 2, size: 2.5, label: null, at: "2026-02-01T00:00:00.000Z", tags: [] },
@@ -236,7 +236,8 @@ describe("rows with nothing said about them", () => {
     assert.equal(meta.fields.at?.type, "datetime");
     assert.equal(meta.fields.tags?.type, "text[]");
     assert.equal(meta.fields.label?.nullable, true);
-    assert.ok(!fieldsThatSort(meta).includes("label"));
+    assert.ok(fieldsThatSort(meta).includes("label"));
+    assert.ok(!fieldsThatSort(meta).includes("tags"));
   });
 
   it("does not take a text column for a date, whatever Date.parse thinks of it", () => {

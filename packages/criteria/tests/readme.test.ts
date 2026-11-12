@@ -211,7 +211,7 @@ describe("README · rows already in hand", () => {
 
 describe("README · what the model says can be asked", () => {
   it("is what a menu is built from, and what is checked before sending", () => {
-    assert.ok(!fieldsThatSort(datasetMeta).includes("producer_id"));
+    assert.ok(!fieldsThatSort(datasetMeta).includes("tags"));
 
     const { dropped, refused } = validate(
       criteria<Dataset>().selection(["gone" as never, "=", 1]),

@@ -77,9 +77,9 @@ function fieldOf(rows: readonly AnyRecord[], name: string): FieldMeta {
   return {
     type,
     nullable,
-    // The same rule the engine applies, for the same reason: a keyset page ordered by a
-    // column that holds NULL loses the rows that hold no value, without saying so.
-    sortable: !nullable && type !== "text[]" && type !== "unknown",
+    // A list has no order to page by, and neither has a value of no known type. A column some
+    // row leaves empty sorts like any other: `NULL` first ascending, last descending.
+    sortable: type !== "text[]" && type !== "unknown",
     // `is null` on every column that some row leaves empty — the same rule the engine's own
     // definition applies. Without it a filter asking "which ones have no producer" is dropped
     // as an unsupported operator, and the answer silently widens.

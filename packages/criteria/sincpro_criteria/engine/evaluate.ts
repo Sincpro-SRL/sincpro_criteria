@@ -3,6 +3,7 @@ import type { Filter, Triple } from "@sincpro/criteria/criteria/filter";
 import { isTriple, readFilter } from "@sincpro/criteria/criteria/filter";
 import type { AnyRecord, Operator, Value } from "@sincpro/criteria/criteria/grammar";
 import { InvalidCriteria } from "@sincpro/criteria/criteria/grammar";
+import { fold } from "@sincpro/criteria/engine/accents";
 import {
   compareValues,
   emptyList,
@@ -23,6 +24,7 @@ import type { Meta } from "@sincpro/criteria/meta/meta";
  * holds(null, "is null", true); // true
  * holds([], "=", []); // true — the empty-list question
  * holds("Labs 2024", "starts with", "lab"); // true — a prefix, case-insensitive
+ * holds("Impresión", "like", "impresion"); // true — and accent-insensitive, on both sides
  * holds("a_b", "like", "a_b"); // true — `%` and `_` are the text itself, as SQL is told
  * holds("10.00", ">", "9.5", true); // true — a decimal field (`exact`) compares as numbers
  */
@@ -65,9 +67,9 @@ export function holds(
       return compareValues(actual, from, exact) >= 0 && compareValues(actual, to, exact) <= 0;
     }
     case "like":
-      return String(actual).toLowerCase().includes(String(value).toLowerCase());
+      return fold(String(actual)).includes(fold(String(value)));
     case "starts with":
-      return String(actual).toLowerCase().startsWith(String(value).toLowerCase());
+      return fold(String(actual)).startsWith(fold(String(value)));
     case "contains":
       return member(actual, value);
     case "not contains":

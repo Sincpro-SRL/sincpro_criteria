@@ -34,9 +34,10 @@ describe("what the definition says can be asked", () => {
     assert.ok(!fieldsThatFilter(datasetMeta).includes("runs"));
   });
 
-  it("does not offer a nullable column to order by, because a page would lose rows", () => {
-    assert.ok(!fieldsThatSort(datasetMeta).includes("producer_id"));
+  it("offers a nullable column to order by, and never a list", () => {
+    assert.ok(fieldsThatSort(datasetMeta).includes("producer_id"));
     assert.ok(fieldsThatSort(datasetMeta).includes("registered_at"));
+    assert.ok(!fieldsThatSort(datasetMeta).includes("tags"));
   });
 
   it("offers for grouping what can be asked about and is not a relation", () => {

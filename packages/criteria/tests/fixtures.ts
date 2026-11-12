@@ -56,7 +56,7 @@ export const datasetMeta: Meta = {
     producer_id: {
       type: "text",
       nullable: true,
-      sortable: false,
+      sortable: true,
       ops: ["=", "!=", "in", "not in", "like", "is null"],
       kind: "scalar",
     },

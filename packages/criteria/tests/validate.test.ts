@@ -118,7 +118,7 @@ describe("values are read into the type the column compares against", () => {
 
 describe("what the server would refuse outright", () => {
   it("names a field it cannot order by, so a menu can grey it out", () => {
-    const { refused } = validate(criteria<Dataset>().order("producer_id"), datasetMeta);
+    const { refused } = validate(criteria<Dataset>().order("tags"), datasetMeta);
     assert.equal(refused.length, 1);
     assert.equal(refused[0]?.reason, "not_sortable");
   });

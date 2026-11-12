@@ -2,7 +2,7 @@ import { decodeBase64Url, encodeBase64Url } from "@sincpro/criteria/criteria/bas
 import type { AnyRecord, Sort } from "@sincpro/criteria/criteria/grammar";
 import { InvalidCriteria } from "@sincpro/criteria/criteria/grammar";
 import { formatOrder } from "@sincpro/criteria/criteria/order";
-import { compareValues, isExact, sameValue } from "@sincpro/criteria/engine/compare";
+import { isExact, missing, placeValues, sameValue } from "@sincpro/criteria/engine/compare";
 import type { Meta } from "@sincpro/criteria/meta/meta";
 
 const DATETIME_TAG = "__dt__";
@@ -64,7 +64,8 @@ export function readCursor(token: string, ordering: string): CursorKeys {
  * Whether this row falls past the one a cursor names, compared the way the keyset compares.
  *
  * The first sort that differs decides, in its own direction; a row equal on every key is the
- * row the cursor was minted from and does not come back.
+ * row the cursor was minted from and does not come back. `NULL` is placed as the page orders it
+ * ({@link placeValues}): a `NULL` key is past nothing ascending, and past every value descending.
  */
 export function beyond<T = AnyRecord>(
   record: T,
@@ -76,8 +77,10 @@ export function beyond<T = AnyRecord>(
     const mine = (record as AnyRecord)[sort.field];
     const theirs = keys.keys[at];
     const exact = isExact(meta, sort.field);
-    if (sameValue(mine, theirs, exact)) continue;
-    const side = compareValues(mine, theirs, exact);
+    // A key that travelled as JSON holds `null` where the row may hold `undefined`: both are no
+    // value, and a tie, so the next sort decides.
+    if (sameValue(mine, theirs, exact) || (missing(mine) && missing(theirs))) continue;
+    const side = placeValues(mine, theirs, exact);
     return sort.descending ? side < 0 : side > 0;
   }
   return false;

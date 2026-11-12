@@ -49,6 +49,26 @@
       ],
       "owner": null,
       "made_at": "2026-03-27T00:00:00Z"
+    },
+    {
+      "id": "f",
+      "name": "Impresión.pdf",
+      "size": 50,
+      "tags": [
+        "print"
+      ],
+      "owner": "ines",
+      "made_at": "2026-04-02T00:00:00Z"
+    },
+    {
+      "id": "g",
+      "name": "ÉCOLE.txt",
+      "size": 70,
+      "tags": [
+        "print"
+      ],
+      "owner": "ines",
+      "made_at": "2026-04-09T00:00:00Z"
     }
   ],
   "cases": [
@@ -72,7 +92,9 @@
         "value": "ana"
       },
       "expected": [
-        "b"
+        "b",
+        "f",
+        "g"
       ]
     },
     {
@@ -84,7 +106,9 @@
       },
       "expected": [
         "a",
-        "d"
+        "d",
+        "f",
+        "g"
       ]
     },
     {
@@ -109,7 +133,9 @@
       "expected": [
         "a",
         "b",
-        "d"
+        "d",
+        "f",
+        "g"
       ]
     },
     {
@@ -146,7 +172,9 @@
         "value": 120
       },
       "expected": [
-        "c"
+        "c",
+        "f",
+        "g"
       ]
     },
     {
@@ -159,7 +187,9 @@
       "expected": [
         "b",
         "c",
-        "e"
+        "e",
+        "f",
+        "g"
       ]
     },
     {
@@ -214,7 +244,9 @@
         ]
       },
       "expected": [
-        "b"
+        "b",
+        "f",
+        "g"
       ]
     },
     {
@@ -248,6 +280,39 @@
       "expected": []
     },
     {
+      "name": "like ignores accents: impresion finds Impresión",
+      "selection": {
+        "field": "name",
+        "operator": "like",
+        "value": "impresion"
+      },
+      "expected": [
+        "f"
+      ]
+    },
+    {
+      "name": "like ignores accents in the value as well as the column",
+      "selection": {
+        "field": "name",
+        "operator": "like",
+        "value": "IMPRESIÓN"
+      },
+      "expected": [
+        "f"
+      ]
+    },
+    {
+      "name": "like folds an uppercase accent stored in the field",
+      "selection": {
+        "field": "name",
+        "operator": "like",
+        "value": "ecole"
+      },
+      "expected": [
+        "g"
+      ]
+    },
+    {
       "name": "starts with is case-insensitive and anchored at the start",
       "selection": {
         "field": "name",
@@ -257,6 +322,17 @@
       "expected": [
         "a",
         "e"
+      ]
+    },
+    {
+      "name": "starts with ignores accents",
+      "selection": {
+        "field": "name",
+        "operator": "starts with",
+        "value": "impre"
+      },
+      "expected": [
+        "f"
       ]
     },
     {
@@ -290,7 +366,9 @@
       "expected": [
         "c",
         "d",
-        "e"
+        "e",
+        "f",
+        "g"
       ]
     },
     {
@@ -315,7 +393,9 @@
         "a",
         "b",
         "d",
-        "e"
+        "e",
+        "f",
+        "g"
       ]
     },
     {
@@ -327,7 +407,9 @@
       },
       "expected": [
         "d",
-        "e"
+        "e",
+        "f",
+        "g"
       ]
     },
     {
@@ -384,7 +466,9 @@
       "expected": [
         "b",
         "c",
-        "e"
+        "e",
+        "f",
+        "g"
       ]
     },
     {
@@ -399,7 +483,9 @@
       "expected": [
         "a",
         "b",
-        "d"
+        "d",
+        "f",
+        "g"
       ]
     },
     {
@@ -433,7 +519,9 @@
         "a",
         "b",
         "d",
-        "e"
+        "e",
+        "f",
+        "g"
       ]
     },
     {
@@ -444,7 +532,9 @@
         "b",
         "c",
         "d",
-        "e"
+        "e",
+        "f",
+        "g"
       ]
     }
   ],
@@ -584,6 +674,85 @@
         },
         "expected": [
           "s4"
+        ]
+      }
+    ]
+  },
+  "literal": {
+    "about": "The text a person typed, read by a search template (`DEFAULT_LITERAL_SEARCH`, `meta.search`) over `rows`: split on whitespace, each word has to appear in some field the template searches, and a blank text drops every condition that holds the text.",
+    "template": {
+      "any": [
+        {
+          "field": "name",
+          "operator": "like",
+          "value": {
+            "$": "param",
+            "name": "text"
+          }
+        },
+        {
+          "field": "owner",
+          "operator": "starts with",
+          "value": {
+            "$": "param",
+            "name": "text"
+          }
+        }
+      ]
+    },
+    "cases": [
+      {
+        "name": "one word, found in any field the template searches",
+        "text": "ana",
+        "expected": [
+          "a",
+          "d"
+        ]
+      },
+      {
+        "name": "a word without its accents finds the one with them",
+        "text": "impresion",
+        "expected": [
+          "f"
+        ]
+      },
+      {
+        "name": "every word has to appear, each in some field",
+        "text": "labs ana",
+        "expected": [
+          "a"
+        ]
+      },
+      {
+        "name": "a word no record holds leaves nothing",
+        "text": "labs beto",
+        "expected": []
+      },
+      {
+        "name": "the spaces around and between words do not count",
+        "text": "  labs   ana  ",
+        "expected": [
+          "a"
+        ]
+      },
+      {
+        "name": "a code with a dot stays one word",
+        "text": "sales.csv beto",
+        "expected": [
+          "b"
+        ]
+      },
+      {
+        "name": "a blank text does not filter",
+        "text": "   ",
+        "expected": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "f",
+          "g"
         ]
       }
     ]
