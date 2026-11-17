@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { criteria, resource, unpack } from "@sincpro/criteria";
+import { type Criteria, criteria, resource, unpack } from "@sincpro/criteria";
 import { RestError, restSource } from "@sincpro/criteria/rest";
 
 import type { Dataset } from "./fixtures";
@@ -22,6 +22,24 @@ const OK_GROUPS = {
   model_version: "3f9c",
   dropped: [],
 };
+
+/** A `Search` whose criteria grouped, as sincpro_framework writes it: `groups` first. */
+const GROUPED_SEARCH = {
+  groups: [{ field: "encoding", value: "utf-8", count: 5, criteria: {}, ids: ["d1"] }],
+  datasets: [{ dataset_id: "d1", name: "labs.csv" }],
+  cursor: "eyJrIjpbImQxIl19",
+  count: { value: 5, exact: true },
+  model_version: "3f9c",
+  dropped: [],
+};
+
+const BY_ENCODING: Criteria<Dataset> = { grouping: { group_by: [{ field: "encoding" }] } };
+
+function sortedKeys<T extends object>(answer: T): T {
+  return Object.fromEntries(
+    Object.entries(answer).sort(([one], [other]) => one.localeCompare(other)),
+  ) as T;
+}
 
 function stub(status: number, body: unknown) {
   const calls: { url: string; init: RequestInit | undefined }[] = [];
@@ -93,6 +111,36 @@ describe("restSource — a Source that wraps fetch around pack/pageFrom", () => 
     assert.equal(page.rows[0]!.field, "encoding");
     const url = new URL(calls[0]!.url, "http://x");
     assert.equal(url.pathname, "/datasets");
+  });
+
+  it("reads a grouped Search's records and its groups each by name, in whatever order they came", async () => {
+    // sincpro_framework 3.37.2 answers a grouping on the same route, `groups` beside the
+    // records; a hop that sorts keys puts the records first.
+    for (const answer of [GROUPED_SEARCH, sortedKeys(GROUPED_SEARCH)]) {
+      const { fetchStub } = stub(200, answer);
+      const datasets = restSource<Dataset>("/datasets", { fetch: fetchStub });
+
+      const records = await datasets.read(BY_ENCODING);
+      const groups = await datasets.group!(BY_ENCODING);
+
+      assert.deepEqual(records.rows, GROUPED_SEARCH.datasets);
+      assert.deepEqual(groups.rows, GROUPED_SEARCH.groups);
+      assert.equal(
+        groups.cursor,
+        null,
+        "groups are paged by offset, not by the records' cursor",
+      );
+      assert.deepEqual(groups.count, GROUPED_SEARCH.count);
+    }
+  });
+
+  it("answers no groups when the server wrote none, never its records as groups", async () => {
+    const { fetchStub } = stub(200, OK_PAGE);
+    const datasets = restSource<Dataset>("/datasets", { fetch: fetchStub });
+
+    const groups = await datasets.group!(BY_ENCODING);
+
+    assert.deepEqual(groups.rows, []);
   });
 
   it("groups from `groupUrl` when the backend answers it at a different endpoint", async () => {

@@ -3,7 +3,7 @@ import { plain } from "@sincpro/criteria/criteria/builder";
 import type { AnyRecord } from "@sincpro/criteria/criteria/grammar";
 import type { Meta } from "@sincpro/criteria/meta/meta";
 import type { Bucket, Envelope, Page } from "@sincpro/criteria/page/page";
-import { pageFrom } from "@sincpro/criteria/page/page";
+import { groupsFrom, pageFrom } from "@sincpro/criteria/page/page";
 import type { Problem } from "@sincpro/criteria/page/problem";
 import { readProblem } from "@sincpro/criteria/page/problem";
 import type { Source } from "@sincpro/criteria/source/source";
@@ -186,9 +186,6 @@ export function rpcSource<T = AnyRecord>(
       methods.group === undefined
         ? undefined
         : async (criteria, signal): Promise<Page<Bucket<T>>> =>
-            pageFrom<Bucket<T>>(
-              await call(methods.group!, criteria, signal),
-              options.meta ?? null,
-            ),
+            groupsFrom<T>(await call(methods.group!, criteria, signal), options.meta ?? null),
   };
 }

@@ -120,6 +120,12 @@ export interface Envelope {
 
   /** Conditions the model could not answer. */
   dropped: Dropped[];
+
+  /**
+   * The groups the criteria's `grouping` asked for, beside the records — written only then.
+   * sincpro_framework's `Search` answers them on the same route since 3.37.2.
+   */
+  groups?: Bucket[];
 }
 
 /**
@@ -138,7 +144,8 @@ export type PaginatedResponse<Field extends string, T> = { [K in Field]: T[] } &
  *
  * The one shape every source hands back and every reading holds. A grouped answer is a
  * `Page<Bucket>`: the engine answers buckets under a field name of their own — `groups` —
- * with the same envelope around them, so nothing here needs a second type for it.
+ * with the same envelope around them, so nothing here needs a second type for it
+ * ({@link groupsFrom}).
  *
  * In the shared vocabulary a page is an `EntityCollection` — sincpro_framework's and
  * @sincpro/client-framework's word for records, how many there are and the cursor to go on —
@@ -165,6 +172,7 @@ const ENVELOPE_FIELDS: ReadonlySet<string> = new Set([
   "model_version",
   "dropped",
   "missing",
+  "groups",
 ]);
 
 /**
@@ -193,11 +201,40 @@ export function pageFrom<T>(
 }
 
 /**
+ * The groups of a grouped answer, as the page a level of buckets holds.
+ *
+ * Read by their name, `groups`, never by their place in the answer: the records beside them
+ * are what the store answered for the same criteria (on SQL, the first of every group). Groups
+ * are paged by offset (`limitGroups`), so the records' cursor is not theirs — as
+ * `answerGroups` answers in memory. An answer that grouped nothing holds no groups.
+ *
+ * @example
+ * const source = {
+ *   read: async (c) => pageFrom(await getJson("/datasets", { criteria: pack(c) }), meta),
+ *   group: async (c) => groupsFrom(await getJson("/datasets", { criteria: pack(c) }), meta),
+ * };
+ */
+export function groupsFrom<T>(
+  answer: Envelope & Record<string, unknown>,
+  meta: Meta | null = null,
+): Page<Bucket<T>> {
+  return {
+    rows: (answer.groups ?? []) as Bucket<T>[],
+    cursor: null,
+    count: answer.count ?? null,
+    meta,
+    dropped: answer.dropped ?? [],
+    version: answer.model_version ?? null,
+  };
+}
+
+/**
  * The records of an answer whose field name is not known here.
  *
  * The engine names that field after what the answer is about, and asks its own responses to
- * declare exactly one field of their own. This reads the answer the same way: the one key
- * that is not part of the envelope holds the records.
+ * declare exactly one field of records. This reads the answer the same way: the one key that
+ * is not part of the envelope holds the records — a grouped answer's `groups` beside them
+ * never do ({@link groupsFrom} reads those).
  *
  * @example
  * recordsOf<Dataset>(answer); // answer.datasets, without knowing it is called that

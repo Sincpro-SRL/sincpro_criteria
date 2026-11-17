@@ -356,3 +356,16 @@ Added 2026-10-29. The contract was synced (the framework renamed the schema's `L
 - **Breaking**: `Meta.search` changes type; `searchOver` uses the entity's template when it has one.
 - **Not here**: extensions an entity delegates arrive nested under their key, which `Meta` does
   not publish yet — the local engine reads those fields flat.
+
+## A grouped Search answers its groups (framework 3.37.2)
+
+Added 2026-11-17. sincpro_framework's `Search` answers a criteria with `grouping` on the same
+route: `groups` beside the records, written first (Sincpro-SRL/sincpro_framework#268).
+
+- **Read by name**: `groupsFrom` reads `groups`, and `recordsOf` never takes them for the
+  records — neither depends on the order of the answer's keys. `restSource` and `rpcSource`
+  group through `groupsFrom`; `Envelope.groups` types the field.
+- **A group page has no cursor**: groups are paged by offset (`limitGroups`), as `answerGroups`
+  answers in memory; the cursor beside them is the records'.
+- **Behaviour**: `read()` of a grouping criteria answers the records, as its type says, and
+  `group()` of an answer that grouped nothing answers no groups.

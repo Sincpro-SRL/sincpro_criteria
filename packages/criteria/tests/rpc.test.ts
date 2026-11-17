@@ -91,6 +91,27 @@ describe("rpcSource — a Source over the framework's JSON-RPC 2.0 entrypoint", 
     assert.equal(body.method, "catalog.query.GroupDatasets");
   });
 
+  it("reads the groups by name, not as the first array of the answer", async () => {
+    const answer = {
+      datasets: [{ dataset_id: "d1", name: "labs.csv" }],
+      groups: OK_GROUPS.groups,
+      cursor: null,
+      count: { value: 5, exact: true },
+      model_version: "3f9c",
+      dropped: [],
+    };
+    const { fetchStub } = stub(200, rpcResult(answer));
+    const source = rpcSource<Dataset>(
+      "/rpc",
+      { read: "catalog.query.ListDatasets", group: "catalog.query.ListDatasets" },
+      { fetch: fetchStub },
+    );
+
+    const groups = await source.group!({ grouping: { group_by: [{ field: "encoding" }] } });
+
+    assert.deepEqual(groups.rows, OK_GROUPS.groups);
+  });
+
   it("has no group() when no group method was given", () => {
     const source = rpcSource<Dataset>("/rpc", { read: "catalog.query.ListDatasets" });
     assert.equal(source.group, undefined);

@@ -257,7 +257,9 @@ class ResponseListInvoiceLines(ResponsePaginatedQuery):
 
 The analytic report is a third query, the one whose answer is buckets. Its method is named the
 same way (`accounting.group_invoice_lines`). The records keep the response's own field name;
-`pageFrom` takes whichever array is not part of the envelope.
+`pageFrom` takes whichever array is not part of the envelope, and `groupsFrom` the buckets under
+`groups`. sincpro_framework's own `Search` answers both on the same method when the criteria
+groups (3.37.2), so `group` may name `read`'s method.
 
 On the client, one resource per query. `params` is always `{ criteria: <the plain object> }`.
 `postedSales` and `byAnalytic` are the criteria from the sections above.
