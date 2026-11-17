@@ -260,7 +260,8 @@ interface Source<T> {
 A source that only reads is written as the bare function: `resource(async (q) => …)`.
 
 `pageFrom(answer)` turns whatever the server sent into the `Page` everything else reads, so a
-REST adapter is one line and a JSON-RPC one is another. `group` and `pivot` are optional: a
+REST adapter is one line and a JSON-RPC one is another; `groupsFrom(answer)` reads a grouped
+answer's `groups`, by their name. `group` and `pivot` are optional: a
 source without them says so, and `resource(source, { groupLocally: true })` will read the
 matching rows and group them here instead — opt-in, because a screen that quietly downloads a
 table is worse than one that says the source cannot group.

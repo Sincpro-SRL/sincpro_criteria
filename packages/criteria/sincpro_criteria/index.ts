@@ -128,7 +128,7 @@ export type {
   Pivot,
   PivotCell,
 } from "@sincpro/criteria/page/page";
-export { pageFrom, recordsOf } from "@sincpro/criteria/page/page";
+export { groupsFrom, pageFrom, recordsOf } from "@sincpro/criteria/page/page";
 export type {
   FailureKind,
   FieldError,
