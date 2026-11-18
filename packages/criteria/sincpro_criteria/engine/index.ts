@@ -6,6 +6,7 @@ export * from "@sincpro/criteria/engine/evaluate";
 export * from "@sincpro/criteria/engine/formula";
 export * from "@sincpro/criteria/engine/grain";
 export * from "@sincpro/criteria/engine/group";
+export * from "@sincpro/criteria/engine/mask";
 export * from "@sincpro/criteria/engine/measure";
 export * from "@sincpro/criteria/engine/paginate";
 export * from "@sincpro/criteria/engine/pivot";
