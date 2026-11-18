@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { criteria, InvalidCriteria, measure } from "@sincpro/criteria";
+import { criteria, InvalidCriteria, matching, measure, type Meta } from "@sincpro/criteria";
 import {
   answer,
   answerGroups,
@@ -206,6 +206,72 @@ describe("a page out of rows in hand", () => {
       () => answer(rows, criteria<Dataset>().order("tags"), datasetMeta),
       InvalidCriteria,
     );
+  });
+});
+
+describe("what each record brings", () => {
+  const named = { ...datasetMeta, display: "name" };
+
+  it("brings the record whole when the reading asks for nothing", () => {
+    const page = answer(rows, criteria<Dataset>().limit(1), named);
+    assert.deepEqual(Object.keys(page.rows[0]!), Object.keys(rows[0]!));
+  });
+
+  it("brings a reference — the identity and the display — for `matching`'s empty mask", () => {
+    const page = answer(
+      rows,
+      { ...matching(named, ""), order: [{ field: "dataset_id" }] },
+      named,
+    );
+    assert.deepEqual(page.rows.slice(0, 2), [
+      { dataset_id: "d1", name: "labs.csv" },
+      { dataset_id: "d2", name: "sales.csv" },
+    ]);
+  });
+
+  it("brings the identity and what the specification names, a missing one as null", () => {
+    const page = answer(
+      rows,
+      criteria<Dataset>()
+        .specification({ encoding: {}, producer_id: {} })
+        .order("dataset_id"),
+      named,
+    );
+    assert.deepEqual(page.rows[1], {
+      dataset_id: "d2",
+      encoding: "utf-8",
+      producer_id: null,
+    });
+  });
+
+  it("pages over the whole rows: a masked page resumes where the whole one would", () => {
+    const whole = criteria<Dataset>().order("row_count").limit(2);
+    const reference = whole.specification({});
+    const one = answer(rows, reference, named);
+    const two = answer(rows, reference.cursor(one.cursor), named);
+    assert.deepEqual(ids(two), ids(answer(rows, whole.cursor(one.cursor), named)));
+  });
+
+  it("masks an embedded value by its own definition, and leaves the rest of it out", () => {
+    const size: Meta = {
+      aggregate: "Size",
+      identity: "",
+      default_order: "",
+      fields: {
+        width: datasetMeta.fields["row_count"]!,
+        height: datasetMeta.fields["row_count"]!,
+      },
+    };
+    const sized: Meta = {
+      ...named,
+      fields: { ...named.fields, size: { ...datasetMeta.fields["name"]!, definition: size } },
+    };
+    const page = answer(
+      [{ ...rows[0]!, size: { width: 3, height: 4 } }],
+      { specification: { size: { specification: { width: {} } } } },
+      sized,
+    );
+    assert.deepEqual(page.rows, [{ dataset_id: "d1", size: { width: 3 } }]);
   });
 });
 

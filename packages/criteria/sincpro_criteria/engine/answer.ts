@@ -4,6 +4,7 @@ import type { AnyRecord } from "@sincpro/criteria/criteria/grammar";
 import { InvalidCriteria } from "@sincpro/criteria/criteria/grammar";
 import { filtered } from "@sincpro/criteria/engine/evaluate";
 import { bucketsOf } from "@sincpro/criteria/engine/group";
+import { masked } from "@sincpro/criteria/engine/mask";
 import { paginate } from "@sincpro/criteria/engine/paginate";
 import { orderingFor, sortRows } from "@sincpro/criteria/engine/sort";
 import type { Meta } from "@sincpro/criteria/meta/meta";
@@ -15,7 +16,9 @@ import { validate } from "@sincpro/criteria/validate";
  *
  * What the model cannot answer is dropped and reported, exactly as a server would; what it
  * would refuse is thrown, also as a server would, because a page ordered by a column that
- * cannot be paged is not a page with a warning — it is a page missing rows.
+ * cannot be paged is not a page with a warning — it is a page missing rows. Each record comes
+ * back as the specification masks it ({@link masked}): `matching`'s reference is its identity
+ * and its display, never the record whole.
  *
  * @throws {InvalidCriteria} when the criteria asks for something the model refuses.
  *
@@ -35,7 +38,8 @@ export function answer<T = AnyRecord>(
   const page = paginate(sortRows(matching, sorts, meta), criteria, sorts, meta);
 
   return {
-    rows: page.rows,
+    // Masked after paging: the cursor was minted from the whole row, as the server mints it.
+    rows: page.rows.map((row) => masked(row, criteria.specification, meta)),
     cursor: page.cursor,
     // In memory there is nothing to cap: the rows are all here, so the count is exact
     // whatever the criteria was willing to settle for.
