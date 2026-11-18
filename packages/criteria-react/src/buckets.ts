@@ -1,4 +1,11 @@
-import type { Bucket, BucketsState, CriteriaFor, Reading, Resource } from "@sincpro/criteria";
+import type {
+  Bucket,
+  BucketsOptions,
+  BucketsState,
+  CriteriaFor,
+  Reading,
+  Resource,
+} from "@sincpro/criteria";
 import { pack, plain } from "@sincpro/criteria";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
@@ -82,9 +89,12 @@ export interface UseBucketsResult<T> extends BucketsState<T> {
 export function useBuckets<T>(
   resource: Resource<T>,
   criteria: CriteriaFor<T> = {},
+  options: BucketsOptions<T> = {},
 ): UseBucketsResult<T> {
+  // As `useReading`: `options.page` is where the level starts — the groups already read on the
+  // server (`resource.groups(criteria)`) — and the first mount keeps them.
   const key = pack(plain(criteria));
-  const buckets = useMemo(() => resource.group(criteria), [resource, key]);
+  const buckets = useMemo(() => resource.group(criteria, options), [resource, key]);
 
   useEffect(() => {
     void buckets.load();
@@ -92,9 +102,12 @@ export function useBuckets<T>(
     // resolves into a `write()` on a store nobody is subscribed to any more, which is a no-op.
   }, [buckets]);
 
+  // The same snapshot on the server: React asks for it there, and refuses to render without it.
+  const snapshot = () => buckets.snapshot();
   const state = useSyncExternalStore(
     (onChange) => buckets.subscribe(onChange),
-    () => buckets.snapshot(),
+    snapshot,
+    snapshot,
   );
 
   return useMemo(

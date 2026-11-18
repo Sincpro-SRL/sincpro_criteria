@@ -144,9 +144,17 @@ export type { Refusal, Validation } from "@sincpro/criteria/validate";
 export { validate } from "@sincpro/criteria/validate";
 
 /* ── where rows come from, and what drives them ─────────────────────────────────────── */
-export type { BucketsState, BucketsStatus } from "@sincpro/criteria/reading/buckets";
+export type {
+  BucketsOptions,
+  BucketsState,
+  BucketsStatus,
+} from "@sincpro/criteria/reading/buckets";
 export { Buckets } from "@sincpro/criteria/reading/buckets";
-export type { ReadingState, ReadingStatus } from "@sincpro/criteria/reading/reading";
+export type {
+  ReadingOptions,
+  ReadingState,
+  ReadingStatus,
+} from "@sincpro/criteria/reading/reading";
 export { Reading } from "@sincpro/criteria/reading/reading";
 export type { Watchable } from "@sincpro/criteria/reading/store";
 export type { Resource, ResourceOptions } from "@sincpro/criteria/source/resource";

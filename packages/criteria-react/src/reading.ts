@@ -1,4 +1,10 @@
-import type { CriteriaFor, Reading, ReadingState, Resource } from "@sincpro/criteria";
+import type {
+  CriteriaFor,
+  Reading,
+  ReadingOptions,
+  ReadingState,
+  Resource,
+} from "@sincpro/criteria";
 import { pack, plain } from "@sincpro/criteria";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
@@ -30,6 +36,11 @@ export interface UseReadingResult<T> extends Omit<ReadingState<T>, "more"> {
  * identity compared is `pack(criteria)`, not the object. `load()` runs once, when that pair
  * first appears, and the reading is reset (its in-flight request aborted) when the component
  * unmounts or the pair changes.
+ *
+ * It renders on the server too. `options.page` is the first page of this same criteria already
+ * read there (`resource.page(criteria)`): the reading starts `ready` with it, the server's HTML
+ * carries its rows, and in the browser the mount keeps it instead of asking again. Without it,
+ * the server renders the reading `idle` and the browser loads it as a SPA does.
  *
  * @example
  * // simple
@@ -70,25 +81,41 @@ export interface UseReadingResult<T> extends Omit<ReadingState<T>, "more"> {
  *   const { rows } = useReading(resource, q);
  *   return <List rows={rows} />;
  * }
+ *
+ * @example
+ * // server-rendered: a route's loader reads the page, the screen starts from it
+ * const loader = () => datasets.page(recent);                  // on the server
+ * function Recent({ page }: { page: Page<Dataset> }) {
+ *   const { rows } = useReading(datasets, recent, { page });   // server HTML and hydration
+ *   return <List rows={rows} />;
+ * }
  */
 export function useReading<T>(
   resource: Resource<T>,
   criteria: CriteriaFor<T> = {},
+  options: ReadingOptions<T> = {},
 ): UseReadingResult<T> {
   // `key` and not `criteria` itself in the dependency list: a criteria built inline is a new
   // object on every render, and `pack` is the identity that already means "the same reading"
-  // everywhere else in this package (query keys, URLs).
+  // everywhere else in this package (query keys, URLs). The page is where a reading starts, read
+  // for this criteria: it is not part of what a reading is, so it does not restart one.
   const key = pack(plain(criteria));
-  const reading: Reading<T> = useMemo(() => resource.read(criteria), [resource, key]);
+  const reading: Reading<T> = useMemo(
+    () => resource.read(criteria, options),
+    [resource, key],
+  );
 
   useEffect(() => {
     void reading.load();
     return () => reading.reset();
   }, [reading]);
 
+  // The same snapshot on the server: React asks for it there, and refuses to render without it.
+  const snapshot = () => reading.snapshot();
   const state = useSyncExternalStore(
     (onChange) => reading.subscribe(onChange),
-    () => reading.snapshot(),
+    snapshot,
+    snapshot,
   );
 
   return useMemo(

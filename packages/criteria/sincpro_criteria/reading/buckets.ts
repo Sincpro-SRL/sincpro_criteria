@@ -3,7 +3,7 @@ import type { WrittenLevel } from "@sincpro/criteria/criteria/builder";
 import { criteria as build, plain } from "@sincpro/criteria/criteria/builder";
 import type { AnyRecord, Criteria } from "@sincpro/criteria/criteria/grammar";
 import type { Meta } from "@sincpro/criteria/meta/meta";
-import type { Bucket, Count, Dropped } from "@sincpro/criteria/page/page";
+import type { Bucket, Count, Dropped, Page } from "@sincpro/criteria/page/page";
 import { Reading } from "@sincpro/criteria/reading/reading";
 import { Store } from "@sincpro/criteria/reading/store";
 import type { Source } from "@sincpro/criteria/source/source";
@@ -20,6 +20,15 @@ export interface BucketsState<T> {
   dropped: Dropped[];
   status: BucketsStatus;
   error: unknown;
+}
+
+/**
+ * How a level of buckets starts: `page`, the groups of this same criteria already read
+ * somewhere else — on the server, with `resource.groups(criteria)`. It starts `ready` with them,
+ * and its first `load()` keeps them instead of asking again (see `ReadingOptions`).
+ */
+export interface BucketsOptions<T> {
+  page?: Page<Bucket<T>>;
 }
 
 /**
@@ -48,18 +57,26 @@ export class Buckets<T = AnyRecord> extends Store<BucketsState<T>> {
   private readonly source: Source<T>;
   private inFlight = 0;
   private aborter: AbortController | undefined;
+  /** Born with a page that the first `load()` keeps; any request asked before that drops it. */
+  private seeded: boolean;
 
-  constructor(source: Source<T>, criteria: CriteriaFor<T> = {}) {
+  constructor(
+    source: Source<T>,
+    criteria: CriteriaFor<T> = {},
+    options: BucketsOptions<T> = {},
+  ) {
+    const { page } = options;
     super({
       criteria: plain(criteria),
-      buckets: [],
-      count: null,
-      meta: null,
-      dropped: [],
-      status: "idle",
+      buckets: page?.rows ?? [],
+      count: page?.count ?? null,
+      meta: page?.meta ?? null,
+      dropped: page?.dropped ?? [],
+      status: page === undefined ? "idle" : "ready",
       error: undefined,
     });
     this.source = source;
+    this.seeded = page !== undefined;
   }
 
   get criteria(): Criteria<T> {
@@ -90,8 +107,12 @@ export class Buckets<T = AnyRecord> extends Store<BucketsState<T>> {
     return this.snapshot().error;
   }
 
-  /** The buckets of this level. */
+  /** The buckets of this level — kept, the first time, when it was born with them. */
   async load(): Promise<void> {
+    if (this.seeded) {
+      this.seeded = false;
+      return;
+    }
     await this.request(this.criteria);
   }
 
@@ -118,6 +139,7 @@ export class Buckets<T = AnyRecord> extends Store<BucketsState<T>> {
   }
 
   private async request(criteria: Criteria<T>): Promise<void> {
+    this.seeded = false;
     if (this.source.group === undefined) {
       this.write({
         status: "failed",
