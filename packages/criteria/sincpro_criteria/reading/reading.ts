@@ -27,6 +27,18 @@ export interface ReadingState<T> {
 }
 
 /**
+ * How a reading starts.
+ *
+ * `page`: the first page of this same criteria, already read somewhere else — on the server that
+ * rendered the screen, with `resource.page(criteria)`. The reading starts `ready` with it, and its
+ * first `load()` keeps it instead of asking again: what the server showed is what the browser
+ * hydrates, without a second request or a loading flash.
+ */
+export interface ReadingOptions<T> {
+  page?: Page<T>;
+}
+
+/**
  * A reading: one criteria, the rows it brought back, and where it goes on.
  *
  * Built through a resource — `datasets.read(criteria)` — and driven by four methods.
@@ -48,25 +60,39 @@ export interface ReadingState<T> {
  * await reading.load();
  * await reading.more(); // infinite scroll
  * await reading.refine(base.selection(searchOver(reading.meta!, typed))); // search box
+ *
+ * @example
+ * // rendered on the server, hydrated in the browser — one request in all
+ * const page = await datasets.page(recent);                // on the server
+ * const reading = datasets.read(recent, { page });          // in the browser, with that page
+ * await reading.load();                                     // keeps it: nothing is asked
  */
 export class Reading<T = AnyRecord> extends Store<ReadingState<T>> {
   private readonly source: Source<T>;
   private inFlight = 0;
   private aborter: AbortController | undefined;
+  /** Born with a page that the first `load()` keeps; any request asked before that drops it. */
+  private seeded: boolean;
 
-  constructor(source: Source<T>, criteria: CriteriaFor<T> = {}) {
+  constructor(
+    source: Source<T>,
+    criteria: CriteriaFor<T> = {},
+    options: ReadingOptions<T> = {},
+  ) {
+    const { page } = options;
     super({
       criteria: plain(criteria),
-      rows: [],
-      cursor: null,
-      count: null,
-      meta: null,
-      dropped: [],
-      status: "idle",
+      rows: page?.rows ?? [],
+      cursor: page?.cursor ?? null,
+      count: page?.count ?? null,
+      meta: page?.meta ?? null,
+      dropped: page?.dropped ?? [],
+      status: page === undefined ? "idle" : "ready",
       error: undefined,
-      more: false,
+      more: page !== undefined && page.cursor !== null,
     });
     this.source = source;
+    this.seeded = page !== undefined;
   }
 
   /** The criteria this reading is over. */
@@ -107,8 +133,15 @@ export class Reading<T = AnyRecord> extends Store<ReadingState<T>> {
     return this.snapshot().more;
   }
 
-  /** The first page. Calling it again is a reload. */
+  /**
+   * The first page. Calling it again is a reload — except the first call on a reading born with
+   * a page (`ReadingOptions.page`), which keeps that page and asks nothing.
+   */
   async load(): Promise<void> {
+    if (this.seeded) {
+      this.seeded = false;
+      return;
+    }
     await this.request(this.criteria, { append: false, retryFromStart: true });
   }
 
@@ -144,6 +177,7 @@ export class Reading<T = AnyRecord> extends Store<ReadingState<T>> {
 
   /** Back to nothing read, keeping the criteria. */
   reset(): void {
+    this.seeded = false;
     this.aborter?.abort();
     this.write({
       rows: [],
@@ -200,6 +234,7 @@ export class Reading<T = AnyRecord> extends Store<ReadingState<T>> {
     criteria: Criteria<T>,
     options: { append: boolean; retryFromStart: boolean },
   ): Promise<void> {
+    this.seeded = false;
     this.aborter?.abort();
     const aborter = new AbortController();
     this.aborter = aborter;

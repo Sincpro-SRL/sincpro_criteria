@@ -297,3 +297,31 @@ describe("a definition read off the rows", () => {
     assert.deepEqual(dropped, []);
   });
 });
+
+describe("a level of buckets born with the groups read on the server", () => {
+  const byEncoding = criteria<Dataset>().groupBy("encoding");
+
+  it("starts ready with them and keeps them on the first load", async () => {
+    const page = await datasets().groups(byEncoding);
+    const inner = fromRows<Dataset>(rows, { meta: datasetMeta });
+    let asked = 0;
+    const tree = resource<Dataset>({
+      ...inner,
+      group: (written, signal) => {
+        asked += 1;
+        return inner.group!(written, signal);
+      },
+    }).group(byEncoding, { page });
+
+    assert.equal(tree.status, "ready");
+    await tree.load();
+    assert.equal(asked, 0);
+    assert.deepEqual(
+      tree.buckets.map((one) => one.value),
+      ["latin-1", "utf-8"],
+    );
+
+    await tree.load();
+    assert.equal(asked, 1);
+  });
+});

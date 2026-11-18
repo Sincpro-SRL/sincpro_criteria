@@ -281,3 +281,85 @@ describe("a search box, end to end", () => {
     );
   });
 });
+
+/** A source that counts how often it is asked, over the same rows. */
+function counted(): { source: Source<Dataset>; asked: () => number } {
+  const inner = fromRows(rows, { meta: datasetMeta });
+  let times = 0;
+  return {
+    source: {
+      ...inner,
+      read: (criteria, signal) => {
+        times += 1;
+        return inner.read(criteria, signal);
+      },
+    },
+    asked: () => times,
+  };
+}
+
+describe("a reading born with a page read on the server", () => {
+  const recent = criteria<Dataset>().order("-registered_at").limit(2);
+
+  it("starts ready with that page, before anything is asked", async () => {
+    const page = await datasets().page(recent);
+    const reading = datasets().read(recent, { page });
+
+    assert.equal(reading.status, "ready");
+    assert.deepEqual(
+      reading.rows.map((one) => one.dataset_id),
+      ["d5", "d4"],
+    );
+    assert.equal(reading.hasMore, true);
+    assert.equal(reading.meta, page.meta);
+  });
+
+  it("keeps it on the first load, so hydrating asks nothing", async () => {
+    const page = await datasets().page(recent);
+    const { source, asked } = counted();
+    const reading = resource<Dataset>(source).read(recent, { page });
+
+    await reading.load();
+
+    assert.equal(asked(), 0);
+    assert.equal(reading.status, "ready");
+    assert.equal(reading.rows.length, 2);
+  });
+
+  it("asks again on a reload, and on a load after the first", async () => {
+    const page = await datasets().page(recent);
+    const { source, asked } = counted();
+    const reading = resource<Dataset>(source).read(recent, { page });
+
+    await reading.load();
+    await reading.reload();
+    await reading.load();
+
+    assert.equal(asked(), 2);
+  });
+
+  it("goes on from the page it was born with", async () => {
+    const page = await datasets().page(recent);
+    const reading = datasets().read(recent, { page });
+
+    await reading.load();
+    await reading.more();
+
+    assert.deepEqual(
+      reading.rows.map((one) => one.dataset_id),
+      ["d5", "d4", "d3", "d2"],
+    );
+  });
+
+  it("drops the page once reset: the next load reads", async () => {
+    const page = await datasets().page(recent);
+    const { source, asked } = counted();
+    const reading = resource<Dataset>(source).read(recent, { page });
+
+    reading.reset();
+    await reading.load();
+
+    assert.equal(asked(), 1);
+    assert.equal(reading.rows.length, 2);
+  });
+});

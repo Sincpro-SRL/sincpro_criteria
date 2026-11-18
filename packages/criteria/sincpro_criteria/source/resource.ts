@@ -4,8 +4,8 @@ import type { AnyRecord, Criteria } from "@sincpro/criteria/criteria/grammar";
 import { DEFAULT_LIMIT } from "@sincpro/criteria/engine/paginate";
 import type { Axes } from "@sincpro/criteria/engine/pivot";
 import type { Bucket, Page, Pivot } from "@sincpro/criteria/page/page";
-import { Buckets } from "@sincpro/criteria/reading/buckets";
-import { Reading } from "@sincpro/criteria/reading/reading";
+import { Buckets, type BucketsOptions } from "@sincpro/criteria/reading/buckets";
+import { Reading, type ReadingOptions } from "@sincpro/criteria/reading/reading";
 import { fromRows } from "@sincpro/criteria/source/rows";
 import type { Source } from "@sincpro/criteria/source/source";
 
@@ -49,11 +49,14 @@ export interface Resource<T = AnyRecord> {
   /** Every row the criteria matches, walked one page at a time. */
   all(criteria?: CriteriaFor<T>, signal?: AbortSignal): AsyncIterableIterator<T>;
 
-  /** A live reading: rows, cursor, count and the four methods that drive them. */
-  read(criteria?: CriteriaFor<T>): Reading<T>;
+  /**
+   * A live reading: rows, cursor, count and the four methods that drive them — born `ready`
+   * when `options.page` brings the first page already read (on the server, with `page()`).
+   */
+  read(criteria?: CriteriaFor<T>, options?: ReadingOptions<T>): Reading<T>;
 
-  /** A live level of buckets. */
-  group(criteria?: CriteriaFor<T>): Buckets<T>;
+  /** A live level of buckets — born `ready` when `options.page` brings them (`groups()`). */
+  group(criteria?: CriteriaFor<T>, options?: BucketsOptions<T>): Buckets<T>;
 
   /** The source underneath, for whoever needs it. */
   source: Source<T>;
@@ -161,9 +164,9 @@ export function resource<T = AnyRecord>(
 
     all: (criteria = {}, signal) => walk(resolved, plain(criteria), undefined, signal),
 
-    read: (criteria = {}) => new Reading<T>(resolved, criteria),
+    read: (criteria = {}, options = {}) => new Reading<T>(resolved, criteria, options),
 
-    group: (criteria = {}) => new Buckets<T>(resolved, criteria),
+    group: (criteria = {}, options = {}) => new Buckets<T>(resolved, criteria, options),
   };
 }
 
