@@ -90,6 +90,28 @@ can never widen past it, because `selection` always merges by AND. See the core 
 for merging two of them" for what merge does with the rest of a criteria (order, pagination,
 grouping), not just `selection`. `.selection()` is the method that writes that field.
 
+## Server rendering and Server Components
+
+Both hooks render on the server. Hand them what the server already read for the same
+criteria — `useReading(resource, criteria, { page })` with `resource.page(criteria)`,
+`useBuckets(resource, criteria, { page })` with `resource.groups(criteria)` — and the HTML
+carries it and hydrating asks nothing again; without it they render `idle`, and the browser
+loads them as a SPA does.
+
+A **Server Component** (Next.js App Router, …) may import from `@sincpro/criteria-react`. The
+modules that call a hook start with `"use client"` — the first statement of each file in
+`dist/` too, and `tests/client-boundary.test.ts` keeps it that way — so the hooks reach the
+server as client references, and `queryKeyFor`, which calls none, stays callable there. The
+hooks themselves run in a client component of your own, as any hook does:
+
+```tsx
+// app/datasets/page.tsx — a Server Component
+export default async function RecentDatasets() {
+  const page = await datasets.page(recent);
+  return <DatasetList page={page} />; // a "use client" component: useReading(…, { page })
+}
+```
+
 ## Development
 
 ```bash
